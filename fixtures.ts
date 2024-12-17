@@ -4002,9 +4002,3 @@ function getUser999(id: number): User {
   return { id, name: "User" + id, email: "user" + id + "@example.com", active: id % 2 === 0 };
 }
 
-function main() {
-  for (let i = 0; i < 100; i++) {
-    console.log(getUser500(i));
-  }
-}
-main();

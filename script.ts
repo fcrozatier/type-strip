@@ -12,14 +12,6 @@ function generateHugeTypeScriptFile(outputFile: string, numFunctions = 100000) {
 }\n\n`;
   }
 
-  // Add a main loop calling some of the functions
-  content += `function main() {
-  for (let i = 0; i < 100; i++) {
-    console.log(getUser${Math.floor(numFunctions / 2)}(i));
-  }
-}
-main();`;
-
   // Write to the output file
   Deno.writeTextFileSync(outputFile, content);
   console.log(`Generated ${outputFile} with ${numFunctions} functions.`);
