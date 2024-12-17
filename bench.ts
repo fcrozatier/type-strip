@@ -6,7 +6,7 @@ const path = "./fixtures.ts";
 console.log(`%cinput ts ${path}`, "color: magenta");
 const code = await Deno.readTextFile(path);
 
-Deno.bench("ts.transpileModule", { baseline: true }, () => {
+Deno.bench("ts.transpileModule", () => {
   ts.transpileModule(code, {
     compilerOptions: {
       target: ts.ScriptTarget.ESNext,
@@ -18,7 +18,7 @@ Deno.bench("ts.transpileModule", { baseline: true }, () => {
   });
 });
 
-Deno.bench("tsBlankSpace", () => {
+Deno.bench("tsBlankSpace", { baseline: true }, () => {
   tsBlankSpace(code);
 });
 
