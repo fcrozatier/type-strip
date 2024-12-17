@@ -2,7 +2,8 @@
   "version": "0.0.1",
   "tasks": {
     "bench": "deno bench --allow-read --allow-env --allow-run bench.ts ",
-    "fixtures": "deno run --allow-write script.ts"
+    "fixtures": "deno run --allow-write script.ts",
+    "main": "deno run --allow-read --allow-write --allow-env main.ts"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1",
