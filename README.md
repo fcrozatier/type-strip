@@ -11,3 +11,8 @@ To run the benchmark:
 ```sh
 deno task bench
 ```
+
+## Results
+
+1. As expected, Typescript is the slowest of the three.
+2. The difference in speed between `ts-blank-space` and `esbuild` is not significant, it is only 1.xx times slower: the same order of magnitude
