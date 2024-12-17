@@ -15,4 +15,5 @@ deno task bench
 ## Results
 
 1. As expected, Typescript is the slowest of the three, and esbuild the fastest
-2. The difference in speed between `ts-blank-space` and `esbuild` is not significant, Bloomberg's library is only 1.xx times slower: the same order of magnitude
+2. The difference in speed between `ts-blank-space` and `esbuild` is not significant, Bloomberg's library is only 1.xx times slower for big files: the same order of magnitude
+3. For small files (< 1000 lines) `ts-blank-space` is faster
