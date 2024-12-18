@@ -74,6 +74,9 @@ const visitor = (node: ts.Node) => {
     case ts.SyntaxKind.AsExpression:
       return visitAsExpression(node as ts.AsExpression);
 
+    case ts.SyntaxKind.NonNullExpression:
+      return visitNonNullExpression(node as ts.NonNullExpression);
+
     case ts.SyntaxKind.FunctionDeclaration:
     case ts.SyntaxKind.MethodDeclaration:
     case ts.SyntaxKind.GetAccessor:
@@ -212,8 +215,28 @@ const visitVariableDeclaration = (node: ts.VariableDeclaration): ts.Node => {
   );
 };
 
+/**
+ * Handle type assertion
+ *
+ * @example
+ * const value = 1 as number;
+ */
 const visitAsExpression = (node: ts.AsExpression | ts.SatisfiesExpression) => {
   return node.expression;
+};
+
+/**
+ * Handle non null assertion
+ *
+ * @example document.getElementById("entry")!.innerText = "...";
+ */
+const visitNonNullExpression = (
+  node: ts.NonNullExpression,
+): ts.NonNullExpression => {
+  return ts.factory.updateNonNullExpression(
+    node,
+    visitor(node.expression) as ts.Expression,
+  );
 };
 
 /**
