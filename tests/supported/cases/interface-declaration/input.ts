@@ -11,3 +11,9 @@ const user: Person = {
     return `Hi, I'm ${this.name}.`;
   },
 };
+
+// Export modifier
+export interface Person {
+  name: string;
+  age: number;
+}

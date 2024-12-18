@@ -16,3 +16,6 @@ const admin: Admin = {
     return `Admin ${this.name} at your service!`;
   },
 };
+
+// Export modifier
+export type SpecialBool = boolean;
