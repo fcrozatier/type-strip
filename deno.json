@@ -3,10 +3,13 @@
   "tasks": {
     "bench": "deno bench --allow-read --allow-env --allow-run bench.ts ",
     "fixtures": "deno run --allow-write script.ts",
-    "main": "deno run --allow-read --allow-write --allow-env main.ts"
+    "main": "deno run --allow-read --allow-write --allow-env main.ts",
+    "test": "deno test --allow-read"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1",
+    "@std/fs": "jsr:@std/fs@^1.0.7",
+    "@std/path": "jsr:@std/path@^1.0.8",
     "esbuild": "npm:esbuild@^0.24.0",
     "ts-blank-space": "npm:ts-blank-space@^0.4.4",
     "typescript": "npm:typescript@^5.7.2"
