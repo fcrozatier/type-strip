@@ -3,3 +3,11 @@ interface Person {
   age: number;
   greet(): string;
 }
+
+const user: Person = {
+  name: "Alice",
+  age: 30,
+  greet() {
+    return `Hi, I'm ${this.name}.`;
+  },
+};
