@@ -71,6 +71,7 @@ const visitor = (node: ts.Node) => {
       return visitFunctionLikeDeclaration(node as ts.FunctionLikeDeclaration);
 
     case ts.SyntaxKind.InterfaceDeclaration:
+    case ts.SyntaxKind.TypeAliasDeclaration:
       return undefined;
   }
 
