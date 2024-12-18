@@ -59,6 +59,8 @@ const visitor = (node: ts.Node) => {
   switch (node.kind) {
     case ts.SyntaxKind.ExportDeclaration:
       return visitExportDeclaration(node as ts.ExportDeclaration);
+    case ts.SyntaxKind.ImportDeclaration:
+      return visitImportDeclaration(node as ts.ImportDeclaration);
 
     // Remove type annotations
     case ts.SyntaxKind.VariableDeclaration:
@@ -129,6 +131,61 @@ const visitNamedExports = (node: ts.NamedExports) => {
 };
 
 const visitExportSpecifier = (node: ts.ExportSpecifier) => {
+  if (node.isTypeOnly) return undefined;
+
+  return node;
+};
+
+/**
+ * Handle import declaration
+ *
+ * @example
+ * import type { Person } from "module";
+ */
+const visitImportDeclaration = (
+  node: ts.ImportDeclaration,
+): ts.ImportDeclaration | undefined => {
+  const importClause = visitImportClause(node.importClause);
+
+  if (!importClause) return undefined;
+
+  return ts.factory.updateImportDeclaration(
+    node,
+    node.modifiers,
+    importClause,
+    node.moduleSpecifier,
+    node.attributes,
+  );
+};
+
+const visitImportClause = (node: ts.ImportClause | undefined) => {
+  if (node?.isTypeOnly) return undefined;
+
+  let namedBindings = node?.namedBindings;
+
+  if (namedBindings && ts.isNamedImports(namedBindings)) {
+    namedBindings = visitNamedImports(namedBindings);
+  }
+
+  if (!namedBindings) return undefined;
+
+  return ts.factory.updateImportClause(
+    node as ts.ImportClause,
+    false,
+    node?.name,
+    namedBindings,
+  );
+};
+
+const visitNamedImports = (node: ts.NamedImports) => {
+  const elements = node.elements.map(visitImportSpecifier).filter(Boolean);
+
+  if (elements.length === 0) return undefined;
+
+  return ts.factory.updateNamedImports(node, elements as ts.ImportSpecifier[]);
+};
+
+const visitImportSpecifier = (node: ts.ImportSpecifier) => {
   if (node.isTypeOnly) return undefined;
 
   return node;
