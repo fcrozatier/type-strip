@@ -13,5 +13,6 @@
     "esbuild": "npm:esbuild@^0.24.0",
     "ts-blank-space": "npm:ts-blank-space@^0.4.4",
     "typescript": "npm:typescript@^5.7.2"
-  }
+  },
+  "exclude": ["tests/**/input.ts", "tests/**/output.ts"]
 }
