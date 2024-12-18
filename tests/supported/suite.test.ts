@@ -10,7 +10,7 @@ import TypeStrip from "../../typestrip.ts";
  * const only = /.* /; // runs all tests
  * const only = /variable-declarations/; // only runs the "variable-declarations" test case
  */
-const only = /function-return-type/;
+const only = /.*/;
 
 for await (
   const directory of walk(join(Deno.cwd(), "tests/supported/cases"), {
