@@ -92,6 +92,9 @@ const visitor = (node: ts.Node) => {
 
     case ts.SyntaxKind.PropertyDeclaration:
       return visitPropertyDeclaration(node as ts.PropertyDeclaration);
+
+    case ts.SyntaxKind.NewExpression:
+      return visitNewExpression(node as ts.NewExpression);
   }
 
   return ts.visitEachChild(node, visitor, context);
@@ -392,6 +395,23 @@ const visitPropertyDeclaration = (
     undefined, // remove the question or exclamation token
     undefined, // remove the type annotation
     node.initializer,
+  );
+};
+
+/**
+ * Handle new Expression
+ *
+ * @example
+ * new Box<string>("hello")
+ */
+const visitNewExpression = (
+  node: ts.NewExpression,
+): ts.NewExpression => {
+  return ts.factory.updateNewExpression(
+    node,
+    node.expression,
+    undefined, // type argument
+    node.arguments,
   );
 };
 
