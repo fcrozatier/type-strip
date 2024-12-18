@@ -73,6 +73,13 @@ const visitor = (node: ts.Node) => {
     case ts.SyntaxKind.InterfaceDeclaration:
     case ts.SyntaxKind.TypeAliasDeclaration:
       return undefined;
+
+    case ts.SyntaxKind.ClassDeclaration:
+    case ts.SyntaxKind.ClassExpression:
+      return visitClassLike(node as ts.ClassLikeDeclaration);
+
+    case ts.SyntaxKind.PropertyDeclaration:
+      return visitPropertyDeclaration(node as ts.PropertyDeclaration);
   }
 
   return ts.visitEachChild(node, visitor, context);
@@ -129,7 +136,7 @@ const visitParameter = (
 const visitFunctionLikeDeclaration = (
   node: ts.FunctionLikeDeclaration,
 ): ts.FunctionLikeDeclaration => {
-  const parameters = node.parameters.map((param) => visitParameter(param));
+  const parameters = node.parameters.map(visitParameter);
 
   switch (node.kind) {
     case ts.SyntaxKind.FunctionDeclaration:
@@ -164,6 +171,98 @@ const visitFunctionLikeDeclaration = (
         node.equalsGreaterThanToken,
         node.body,
       );
+    case ts.SyntaxKind.Constructor:
+      return ts.factory.updateConstructorDeclaration(
+        node,
+        node.modifiers,
+        parameters,
+        node.body,
+      );
+    case ts.SyntaxKind.MethodDeclaration:
+      return ts.factory.updateMethodDeclaration(
+        node,
+        node.modifiers,
+        node.asteriskToken,
+        node.name,
+        undefined, // question token
+        undefined, // type parameter
+        parameters,
+        undefined, // return type
+        node.body,
+      );
   }
   return node;
+};
+
+/**
+ * Handle class like declarations and visits all members
+ *
+ * @example
+ * class Dog {};
+ *
+ * export class {};
+ *
+ * abstract class Thing {};
+ */
+const visitClassLike = (
+  node: ts.ClassLikeDeclaration,
+): ts.ClassLikeDeclaration | undefined => {
+  const members = node.members.map(visitor);
+
+  if (node.modifiers) {
+    if (hasAbstractModifier(node.modifiers)) {
+      return undefined;
+    }
+  }
+
+  switch (node.kind) {
+    case ts.SyntaxKind.ClassDeclaration:
+      return ts.factory.updateClassDeclaration(
+        node,
+        node.modifiers,
+        node.name,
+        undefined, // remove the type parameter
+        node.heritageClauses,
+        members as unknown as ts.NodeArray<ts.ClassElement>,
+      );
+    case ts.SyntaxKind.ClassExpression:
+      return ts.factory.updateClassExpression(
+        node,
+        node.modifiers,
+        node.name,
+        undefined, // remove the type parameter
+        node.heritageClauses,
+        members as unknown as ts.NodeArray<ts.ClassElement>,
+      );
+  }
+};
+
+/**
+ * Handle property declaration
+ *
+ * @example
+ * class Person {
+ *   name: string;
+ * }
+ */
+const visitPropertyDeclaration = (
+  node: ts.PropertyDeclaration,
+): ts.PropertyDeclaration => {
+  return ts.factory.updatePropertyDeclaration(
+    node,
+    node.modifiers,
+    node.name,
+    undefined, // remove the question or exclamation token
+    undefined, // remove the type annotation
+    node.initializer,
+  );
+};
+
+const hasAbstractModifier = (modifiers: ArrayLike<ts.ModifierLike>) => {
+  for (let i = 0; i < modifiers.length; i++) {
+    if (modifiers[i].kind === ts.SyntaxKind.AbstractKeyword) {
+      return true;
+    }
+  }
+  return false;
 };
