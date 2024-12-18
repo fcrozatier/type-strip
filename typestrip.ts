@@ -4,6 +4,11 @@ type TypeStripOptions = {
   removeComments: boolean;
 };
 
+let sourceFile: ts.SourceFile;
+let printer: ts.Printer;
+// printer.printNode(ts.EmitHint.Unspecified, node, sourceFile)
+let context: ts.TransformationContext;
+
 /**
  * Takes a TypeScript input source file and outputs JavaScript with types stripped
  *
@@ -13,7 +18,7 @@ export default (
   input: string,
   options: TypeStripOptions = { removeComments: false },
 ) => {
-  const sourceFile = ts.createSourceFile(
+  sourceFile = ts.createSourceFile(
     "input.ts",
     input,
     ts.ScriptTarget.Latest,
@@ -28,19 +33,18 @@ const stripTypes = (
   sourceFile: ts.SourceFile,
   { removeComments }: TypeStripOptions,
 ) => {
-  const result = ts.transform(sourceFile, [transformer]);
-  const transformed = result.transformed[0];
-
-  const printer = ts.createPrinter({
+  printer = ts.createPrinter({
     omitTrailingSemicolon: false,
     removeComments,
   });
+
+  const result = ts.transform(sourceFile, [transformer]);
+  const transformed = result.transformed[0];
+
   const output = printer.printFile(transformed as ts.SourceFile);
   result.dispose();
   return output;
 };
-
-let context: ts.TransformationContext;
 
 const transformer =
   <T extends ts.Node>(transformationContext: ts.TransformationContext) =>
@@ -74,16 +78,15 @@ const visitor = (node: ts.Node): ts.Node => {
  * let x: string;
  */
 const visitVariableDeclaration = (node: ts.VariableDeclaration): ts.Node => {
-  if (node.type) {
-    return ts.factory.updateVariableDeclaration(
-      node,
-      node.name,
-      node.exclamationToken,
-      undefined, // remove the type
-      node.initializer,
-    );
-  }
-  return node;
+  const initializer = node.initializer ? visitor(node.initializer) : undefined;
+
+  return ts.factory.updateVariableDeclaration(
+    node,
+    node.name,
+    node.exclamationToken,
+    undefined, // remove the type
+    initializer as ts.Expression,
+  );
 };
 
 /**
@@ -132,6 +135,27 @@ const visitFunctionDeclaration = (
         undefined, // remove the type parameter
         parameters,
         undefined, // remove the return type
+        node.body,
+      );
+    case ts.SyntaxKind.FunctionExpression:
+      return ts.factory.updateFunctionExpression(
+        node,
+        node.modifiers,
+        node.asteriskToken,
+        node.name,
+        undefined, // remove the type parameter
+        parameters,
+        undefined, // remove the return type
+        node.body,
+      );
+    case ts.SyntaxKind.ArrowFunction:
+      return ts.factory.updateArrowFunction(
+        node,
+        node.modifiers,
+        undefined, // remove the type parameter
+        parameters,
+        undefined, // remove the return type
+        node.equalsGreaterThanToken,
         node.body,
       );
   }
