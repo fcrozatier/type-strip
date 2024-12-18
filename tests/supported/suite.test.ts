@@ -3,11 +3,21 @@ import { walk } from "@std/fs";
 import { basename, join } from "@std/path";
 import TypeStrip from "../../typestrip.ts";
 
+/**
+ * Regex or string to filter the tests to run
+ *
+ * @example
+ * const only = /.* /; // runs all tests
+ * const only = /variable-declarations/; // only runs the "variable-declarations" test case
+ */
+const only = /.*/;
+
 for await (
   const directory of walk(join(Deno.cwd(), "tests/supported/cases"), {
     includeDirs: true,
     includeFiles: false,
     followSymlinks: false,
+    match: [only],
   })
 ) {
   const files = await Array.fromAsync(
