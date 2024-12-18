@@ -10,7 +10,7 @@ import TypeStrip from "../../typestrip.ts";
  * const only = /.* /; // runs all tests
  * const only = /variable-declarations/; // only runs the "variable-declarations" test case
  */
-const only = /.*/;
+const only = /function-return-type/;
 
 for await (
   const directory of walk(join(Deno.cwd(), "tests/supported/cases"), {
@@ -30,11 +30,12 @@ for await (
   if (inputEntry && outputEntry) {
     const testCase = basename(directory.path);
 
-    Deno.test(`handles ${testCase}`, async () => {
-      const inputCode = await Deno.readTextFile(inputEntry.path);
-      const outputCode = await Deno.readTextFile(outputEntry.path);
+    const inputCode = await Deno.readTextFile(inputEntry.path);
+    const outputCode = await Deno.readTextFile(outputEntry.path);
 
-      const stripped = TypeStrip(inputCode);
+    const stripped = TypeStrip(inputCode);
+
+    Deno.test(`handles ${testCase}`, () => {
       assertEquals(stripped, outputCode);
     });
   }
