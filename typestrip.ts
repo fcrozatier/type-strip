@@ -38,6 +38,7 @@ const stripTypes = (
     removeComments,
   });
 
+  // @ts-ignore Actually a transformer can return undefined
   const result = ts.transform(sourceFile, [transformer]);
   const transformed = result.transformed[0];
 
@@ -48,12 +49,13 @@ const stripTypes = (
 
 const transformer =
   <T extends ts.Node>(transformationContext: ts.TransformationContext) =>
-  (rootNode: T): ts.Node => {
+  (rootNode: T) => {
     context = transformationContext;
+
     return ts.visitNode(rootNode, visitor);
   };
 
-const visitor = (node: ts.Node): ts.Node => {
+const visitor = (node: ts.Node) => {
   switch (node.kind) {
     // Remove type annotations
     case ts.SyntaxKind.VariableDeclaration:
@@ -67,6 +69,9 @@ const visitor = (node: ts.Node): ts.Node => {
     case ts.SyntaxKind.FunctionExpression:
     case ts.SyntaxKind.ArrowFunction:
       return visitFunctionLikeDeclaration(node as ts.FunctionLikeDeclaration);
+
+    case ts.SyntaxKind.InterfaceDeclaration:
+      return undefined;
   }
 
   return ts.visitEachChild(node, visitor, context);
