@@ -22,7 +22,7 @@ export default (
     "input.ts",
     input,
     ts.ScriptTarget.Latest,
-    /* setParentNodes */ false,
+    false, // setParentNodes
     ts.ScriptKind.TS,
   );
 
@@ -66,7 +66,7 @@ const visitor = (node: ts.Node): ts.Node => {
     case ts.SyntaxKind.Constructor:
     case ts.SyntaxKind.FunctionExpression:
     case ts.SyntaxKind.ArrowFunction:
-      return visitFunctionDeclaration(node as ts.FunctionLikeDeclaration);
+      return visitFunctionLikeDeclaration(node as ts.FunctionLikeDeclaration);
   }
 
   return ts.visitEachChild(node, visitor, context);
@@ -120,7 +120,7 @@ const visitParameter = (
       return x + y;
     }
  */
-const visitFunctionDeclaration = (
+const visitFunctionLikeDeclaration = (
   node: ts.FunctionLikeDeclaration,
 ): ts.FunctionLikeDeclaration => {
   const parameters = node.parameters.map((param) => visitParameter(param));
