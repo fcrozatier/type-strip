@@ -66,6 +66,14 @@ const visitor = (node: ts.Node) => {
     case ts.SyntaxKind.VariableDeclaration:
       return visitVariableDeclaration(node as ts.VariableDeclaration);
 
+    case ts.SyntaxKind.InterfaceDeclaration:
+    case ts.SyntaxKind.TypeAliasDeclaration:
+      return undefined;
+
+    case ts.SyntaxKind.SatisfiesExpression:
+    case ts.SyntaxKind.AsExpression:
+      return visitAsExpression(node as ts.AsExpression);
+
     case ts.SyntaxKind.FunctionDeclaration:
     case ts.SyntaxKind.MethodDeclaration:
     case ts.SyntaxKind.GetAccessor:
@@ -74,10 +82,6 @@ const visitor = (node: ts.Node) => {
     case ts.SyntaxKind.FunctionExpression:
     case ts.SyntaxKind.ArrowFunction:
       return visitFunctionLikeDeclaration(node as ts.FunctionLikeDeclaration);
-
-    case ts.SyntaxKind.InterfaceDeclaration:
-    case ts.SyntaxKind.TypeAliasDeclaration:
-      return undefined;
 
     case ts.SyntaxKind.ClassDeclaration:
     case ts.SyntaxKind.ClassExpression:
@@ -194,7 +198,7 @@ const visitImportSpecifier = (node: ts.ImportSpecifier) => {
 /**
  * Handle variable declaration type annotation
  * @example
- * let x: string;
+ * let x: string = "foo";
  */
 const visitVariableDeclaration = (node: ts.VariableDeclaration): ts.Node => {
   const initializer = node.initializer ? visitor(node.initializer) : undefined;
@@ -206,6 +210,10 @@ const visitVariableDeclaration = (node: ts.VariableDeclaration): ts.Node => {
     undefined, // remove the type
     initializer as ts.Expression,
   );
+};
+
+const visitAsExpression = (node: ts.AsExpression | ts.SatisfiesExpression) => {
+  return node.expression;
 };
 
 /**
