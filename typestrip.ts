@@ -133,7 +133,9 @@ const visitExportDeclaration = (
 };
 
 const visitNamedExports = (node: ts.NamedExports) => {
-  const elements = node.elements.map(visitExportSpecifier).filter(Boolean);
+  const elements = node.elements.map(visitExportSpecifier).filter((e) =>
+    e !== undefined
+  );
 
   if (elements.length === 0) return undefined;
 
@@ -188,7 +190,9 @@ const visitImportClause = (node: ts.ImportClause | undefined) => {
 };
 
 const visitNamedImports = (node: ts.NamedImports) => {
-  const elements = node.elements.map(visitImportSpecifier).filter(Boolean);
+  const elements = node.elements.map(visitImportSpecifier).filter((e) =>
+    e !== undefined
+  );
 
   if (elements.length === 0) return undefined;
 
@@ -251,7 +255,10 @@ const visitNonNullExpression = (
  */
 const visitParameter = (
   node: ts.ParameterDeclaration,
-): ts.ParameterDeclaration => {
+): ts.ParameterDeclaration | undefined => {
+  if (ts.isIdentifier(node.name) && node.name.escapedText === "this") {
+    return undefined;
+  }
   if (node.type) {
     return ts.factory.updateParameterDeclaration(
       node,
@@ -276,7 +283,9 @@ const visitParameter = (
 const visitFunctionLikeDeclaration = (
   node: ts.FunctionLikeDeclaration,
 ): ts.FunctionLikeDeclaration => {
-  const parameters = node.parameters.map(visitParameter);
+  const parameters = node.parameters.map(visitParameter).filter((p) =>
+    p !== undefined
+  );
 
   switch (node.kind) {
     case ts.SyntaxKind.FunctionDeclaration:
