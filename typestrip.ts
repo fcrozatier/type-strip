@@ -57,6 +57,9 @@ const transformer =
 
 const visitor = (node: ts.Node) => {
   switch (node.kind) {
+    case ts.SyntaxKind.ExportDeclaration:
+      return visitExportDeclaration(node as ts.ExportDeclaration);
+
     // Remove type annotations
     case ts.SyntaxKind.VariableDeclaration:
       return visitVariableDeclaration(node as ts.VariableDeclaration);
@@ -83,6 +86,52 @@ const visitor = (node: ts.Node) => {
   }
 
   return ts.visitEachChild(node, visitor, context);
+};
+
+/**
+ * Handle export declaration
+ *
+ * @example
+ * export type { SomeLocalType };
+ * export { type SomeLocalType };
+ * export { thing, type SomeLocalType };
+ */
+const visitExportDeclaration = (
+  node: ts.ExportDeclaration,
+): ts.ExportDeclaration | undefined => {
+  if (node.isTypeOnly) {
+    return undefined;
+  }
+  let exportClause = node.exportClause;
+
+  if (exportClause && ts.isNamedExports(exportClause)) {
+    exportClause = visitNamedExports(exportClause);
+  }
+
+  if (!exportClause) return undefined;
+
+  return ts.factory.updateExportDeclaration(
+    node,
+    node.modifiers,
+    false, // isTypeOnly
+    exportClause,
+    node.moduleSpecifier,
+    node.attributes,
+  );
+};
+
+const visitNamedExports = (node: ts.NamedExports) => {
+  const elements = node.elements.map(visitExportSpecifier).filter(Boolean);
+
+  if (elements.length === 0) return undefined;
+
+  return ts.factory.updateNamedExports(node, elements as ts.ExportSpecifier[]);
+};
+
+const visitExportSpecifier = (node: ts.ExportSpecifier) => {
+  if (node.isTypeOnly) return undefined;
+
+  return node;
 };
 
 /**
