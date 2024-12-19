@@ -14,3 +14,11 @@ class Box<T> {
 // New Expression
 const stringBox = new Box<string>("Hello, Box!");
 const numberBox = new Box<number>(123);
+
+// Generic constraints
+function logLength<T extends { length: number }>(arg: T): void {
+  console.log(arg.length);
+}
+
+logLength([1, 2, 3]);
+logLength("Hello");
