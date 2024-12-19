@@ -109,14 +109,14 @@ const visitor = (node: ts.Node | undefined) => {
       return visitImportDeclaration(node as ts.ImportDeclaration);
 
     // Remove type annotations
+    case ts.SyntaxKind.InterfaceDeclaration:
+    case ts.SyntaxKind.TypeAliasDeclaration:
+      return undefined;
+
     case ts.SyntaxKind.VariableStatement:
       return visitVariableStatement(node as ts.VariableStatement);
     case ts.SyntaxKind.VariableDeclaration:
       return visitVariableDeclaration(node as ts.VariableDeclaration);
-
-    case ts.SyntaxKind.InterfaceDeclaration:
-    case ts.SyntaxKind.TypeAliasDeclaration:
-      return undefined;
 
     case ts.SyntaxKind.SatisfiesExpression:
     case ts.SyntaxKind.AsExpression:
@@ -134,6 +134,9 @@ const visitor = (node: ts.Node | undefined) => {
     case ts.SyntaxKind.FunctionExpression:
     case ts.SyntaxKind.ArrowFunction:
       return visitFunctionLikeDeclaration(node as ts.FunctionLikeDeclaration);
+
+    case ts.SyntaxKind.CallExpression:
+      return visitCallExpression(node as ts.CallExpression);
 
     case ts.SyntaxKind.ClassDeclaration:
     case ts.SyntaxKind.ClassExpression:
@@ -464,6 +467,15 @@ const visitFunctionLikeDeclaration = (
         visitor(node.body) as ts.Block,
       );
   }
+};
+
+const visitCallExpression = (node: ts.CallExpression): ts.CallExpression => {
+  return ts.factory.updateCallExpression(
+    node,
+    visitor(node.expression) as ts.Expression,
+    undefined,
+    node.arguments,
+  );
 };
 
 /**
