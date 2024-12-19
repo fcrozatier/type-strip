@@ -9,15 +9,22 @@ import TypeStrip from "../../typestrip.ts";
  * @example
  * const only = /.* /; // runs all tests
  * const only = /variable-declarations/; // only runs the "variable-declarations" test case
+ *
+ * Skip all
+ * const only = undefined
+ * const skip = [/.* /]
  */
-const only = /.*/;
+const only = undefined;
+const skip = [/.*/];
 
 for await (
   const directory of walk(join(Deno.cwd(), "tests/supported/cases"), {
     includeDirs: true,
     includeFiles: false,
     followSymlinks: false,
-    match: [only],
+    includeSymlinks: false,
+    match: only,
+    skip,
   })
 ) {
   const files = await Array.fromAsync(
