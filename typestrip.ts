@@ -62,10 +62,19 @@ const stripTypes = (
   const result = ts.transform(sourceFile, [transformer]);
   const transformed = result.transformed[0];
 
-  const output = printer.printFile(transformed as ts.SourceFile);
+  const output = decodeUnicodeEscapes(
+    printer.printFile(transformed as ts.SourceFile),
+  );
   result.dispose();
   return output;
 };
+
+function decodeUnicodeEscapes(output: string): string {
+  return output.replace(
+    /\\u([\dA-F]{4})/gi,
+    (_, hex) => String.fromCharCode(parseInt(hex, 16)),
+  );
+}
 
 const transformer =
   <T extends ts.Node>(transformationContext: ts.TransformationContext) =>
