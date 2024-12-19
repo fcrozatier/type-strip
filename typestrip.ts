@@ -300,6 +300,7 @@ const visitParameter = (
       ts.SyntaxKind.PrivateKeyword,
       ts.SyntaxKind.ProtectedKeyword,
       ts.SyntaxKind.ReadonlyKeyword,
+      ts.SyntaxKind.OverrideKeyword,
     ])
   ) {
     throw new TypeStripError("parameter-property");
@@ -378,7 +379,7 @@ const visitFunctionLikeDeclaration = (
     case ts.SyntaxKind.MethodDeclaration:
       return ts.factory.updateMethodDeclaration(
         node,
-        node.modifiers,
+        filterModifiers(node.modifiers),
         node.asteriskToken,
         node.name,
         undefined, // question token
@@ -405,18 +406,13 @@ const visitClassLike = (
   node: ts.ClassLikeDeclaration,
 ): ts.ClassLikeDeclaration | undefined => {
   const members = node.members.map(visitor);
-
-  if (node.modifiers) {
-    if (hasModifier(node.modifiers, ts.SyntaxKind.AbstractKeyword)) {
-      return undefined;
-    }
-  }
+  const modifiers = filterModifiers(node.modifiers);
 
   switch (node.kind) {
     case ts.SyntaxKind.ClassDeclaration:
       return ts.factory.updateClassDeclaration(
         node,
-        node.modifiers,
+        modifiers,
         node.name,
         undefined, // remove the type parameter
         node.heritageClauses,
@@ -425,7 +421,7 @@ const visitClassLike = (
     case ts.SyntaxKind.ClassExpression:
       return ts.factory.updateClassExpression(
         node,
-        node.modifiers,
+        modifiers,
         node.name,
         undefined, // remove the type parameter
         node.heritageClauses,
@@ -447,7 +443,7 @@ const visitPropertyDeclaration = (
 ): ts.PropertyDeclaration => {
   return ts.factory.updatePropertyDeclaration(
     node,
-    node.modifiers,
+    filterModifiers(node.modifiers),
     node.name,
     undefined, // remove the question or exclamation token
     undefined, // remove the type annotation
@@ -487,6 +483,17 @@ const hasModifier = (
     }
   }
   return false;
+};
+
+const filterModifiers = (node: ts.NodeArray<ts.ModifierLike> | undefined) => {
+  return node?.filter((modifier) => {
+    return modifier.kind !== ts.SyntaxKind.PublicKeyword &&
+      modifier.kind !== ts.SyntaxKind.PrivateKeyword &&
+      modifier.kind !== ts.SyntaxKind.ProtectedKeyword &&
+      modifier.kind !== ts.SyntaxKind.ReadonlyKeyword &&
+      modifier.kind !== ts.SyntaxKind.OverrideKeyword &&
+      modifier.kind !== ts.SyntaxKind.AbstractKeyword;
+  });
 };
 
 const isNotUndefined = <T>(x: T) => x !== undefined;
