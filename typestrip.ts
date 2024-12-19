@@ -140,8 +140,8 @@ const visitExportDeclaration = (
 };
 
 const visitNamedExports = (node: ts.NamedExports) => {
-  const elements = node.elements.map(visitExportSpecifier).filter((e) =>
-    e !== undefined
+  const elements = node.elements.map(visitExportSpecifier).filter(
+    isNotUndefined,
   );
 
   if (elements.length === 0) return undefined;
@@ -197,8 +197,8 @@ const visitImportClause = (node: ts.ImportClause | undefined) => {
 };
 
 const visitNamedImports = (node: ts.NamedImports) => {
-  const elements = node.elements.map(visitImportSpecifier).filter((e) =>
-    e !== undefined
+  const elements = node.elements.map(visitImportSpecifier).filter(
+    isNotUndefined,
   );
 
   if (elements.length === 0) return undefined;
@@ -263,9 +263,22 @@ const visitNonNullExpression = (
 const visitParameter = (
   node: ts.ParameterDeclaration,
 ): ts.ParameterDeclaration | undefined => {
+  if (
+    node.modifiers &&
+    hasModifier(node.modifiers, [
+      ts.SyntaxKind.PublicKeyword,
+      ts.SyntaxKind.PrivateKeyword,
+      ts.SyntaxKind.ProtectedKeyword,
+      ts.SyntaxKind.ReadonlyKeyword,
+    ])
+  ) {
+    throw new Error(ERROR_MESSAGE["parameter-properties"]);
+  }
+
   if (ts.isIdentifier(node.name) && node.name.escapedText === "this") {
     return undefined;
   }
+
   if (node.type) {
     return ts.factory.updateParameterDeclaration(
       node,
@@ -290,9 +303,7 @@ const visitParameter = (
 const visitFunctionLikeDeclaration = (
   node: ts.FunctionLikeDeclaration,
 ): ts.FunctionLikeDeclaration => {
-  const parameters = node.parameters.map(visitParameter).filter((p) =>
-    p !== undefined
-  );
+  const parameters = node.parameters.map(visitParameter).filter(isNotUndefined);
 
   switch (node.kind) {
     case ts.SyntaxKind.FunctionDeclaration:
@@ -366,7 +377,7 @@ const visitClassLike = (
   const members = node.members.map(visitor);
 
   if (node.modifiers) {
-    if (hasAbstractModifier(node.modifiers)) {
+    if (hasModifier(node.modifiers, ts.SyntaxKind.AbstractKeyword)) {
       return undefined;
     }
   }
@@ -431,11 +442,21 @@ const visitNewExpression = (
   );
 };
 
-const hasAbstractModifier = (modifiers: ArrayLike<ts.ModifierLike>) => {
+/**
+ * Checks whether one of the modifiers matches against any searched kind
+ */
+const hasModifier = (
+  modifiers: ArrayLike<ts.ModifierLike>,
+  kind: ts.SyntaxKind | ts.SyntaxKind[],
+) => {
+  const kindArray = Array.isArray(kind) ? kind : [kind];
+
   for (let i = 0; i < modifiers.length; i++) {
-    if (modifiers[i].kind === ts.SyntaxKind.AbstractKeyword) {
+    if (kindArray.includes(modifiers[i].kind)) {
       return true;
     }
   }
   return false;
 };
+
+const isNotUndefined = <T>(x: T) => x !== undefined;
