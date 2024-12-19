@@ -362,7 +362,7 @@ const visitParameter = (
       node.name,
       undefined, // remove the question token
       undefined, // remove the type
-      node.initializer,
+      visitor(node.initializer) as ts.Expression,
     );
   }
   return node;
