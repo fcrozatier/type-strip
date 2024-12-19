@@ -1,7 +1,7 @@
 import { assertThrows } from "@std/assert";
 import { walk } from "@std/fs";
 import { basename, join } from "@std/path";
-import { ERROR_MESSAGE } from "../../errors.ts";
+import { ERROR_MESSAGE, TypeStripError } from "../../errors.ts";
 import strip from "../../typestrip.ts";
 
 /**
@@ -32,14 +32,19 @@ for await (
   if (inputEntry) {
     const testCase = basename(directory.path);
 
+    // convention: the test case prefix corresponds to the error code
+    const errorCode = testCase.split("_")[0] as keyof typeof ERROR_MESSAGE;
+    const errorMessage = ERROR_MESSAGE[errorCode];
+
+    if (!errorMessage) throw new Error("no error message");
+
     const inputCode = await Deno.readTextFile(inputEntry.path);
 
     Deno.test(`handles ${testCase}`, () => {
       assertThrows(
         () => strip(inputCode, { fileName: inputEntry.name }),
-        Error,
-        // @ts-ignore convention: the test case corresponds to the error code
-        ERROR_MESSAGE[testCase],
+        TypeStripError,
+        errorMessage,
       );
     });
   }

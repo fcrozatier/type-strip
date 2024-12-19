@@ -83,6 +83,8 @@ const visitor = (node: ts.Node) => {
       return visitImportDeclaration(node as ts.ImportDeclaration);
 
     // Remove type annotations
+    case ts.SyntaxKind.VariableStatement:
+      return visitVariableStatement(node as ts.VariableStatement);
     case ts.SyntaxKind.VariableDeclaration:
       return visitVariableDeclaration(node as ts.VariableDeclaration);
 
@@ -234,6 +236,19 @@ const visitImportSpecifier = (node: ts.ImportSpecifier) => {
   return node;
 };
 
+const visitVariableStatement = (node: ts.VariableStatement) => {
+  const modifiers = visitModifiers(node.modifiers);
+  const declarationList = visitor(
+    node.declarationList,
+  ) as ts.VariableDeclarationList;
+
+  return ts.factory.updateVariableStatement(
+    node,
+    modifiers,
+    declarationList,
+  );
+};
+
 /**
  * Handle variable declaration type annotation
  * @example
@@ -335,12 +350,13 @@ const visitFunctionLikeDeclaration = (
   node: ts.FunctionLikeDeclaration,
 ): ts.FunctionLikeDeclaration => {
   const parameters = node.parameters.map(visitParameter).filter(isNotUndefined);
+  const modifiers = visitModifiers(node.modifiers) as ts.Modifier[] | undefined;
 
   switch (node.kind) {
     case ts.SyntaxKind.FunctionDeclaration:
       return ts.factory.updateFunctionDeclaration(
         node,
-        node.modifiers,
+        modifiers,
         node.asteriskToken,
         node.name,
         undefined, // remove the type parameter
@@ -351,7 +367,7 @@ const visitFunctionLikeDeclaration = (
     case ts.SyntaxKind.FunctionExpression:
       return ts.factory.updateFunctionExpression(
         node,
-        node.modifiers,
+        modifiers,
         node.asteriskToken,
         node.name,
         undefined, // remove the type parameter
@@ -362,7 +378,7 @@ const visitFunctionLikeDeclaration = (
     case ts.SyntaxKind.ArrowFunction:
       return ts.factory.updateArrowFunction(
         node,
-        node.modifiers,
+        modifiers,
         undefined, // remove the type parameter
         parameters,
         undefined, // remove the return type
@@ -372,14 +388,14 @@ const visitFunctionLikeDeclaration = (
     case ts.SyntaxKind.Constructor:
       return ts.factory.updateConstructorDeclaration(
         node,
-        node.modifiers,
+        modifiers,
         parameters,
         node.body,
       );
     case ts.SyntaxKind.MethodDeclaration:
       return ts.factory.updateMethodDeclaration(
         node,
-        visitModifiers(node.modifiers),
+        modifiers,
         node.asteriskToken,
         node.name,
         undefined, // question token
@@ -391,7 +407,7 @@ const visitFunctionLikeDeclaration = (
     case ts.SyntaxKind.GetAccessor:
       return ts.factory.updateGetAccessorDeclaration(
         node,
-        visitModifiers(node.modifiers),
+        modifiers,
         node.name,
         parameters,
         undefined, // return type
@@ -400,7 +416,7 @@ const visitFunctionLikeDeclaration = (
     case ts.SyntaxKind.SetAccessor:
       return ts.factory.updateSetAccessorDeclaration(
         node,
-        visitModifiers(node.modifiers),
+        modifiers,
         node.name,
         parameters,
         node.body,
@@ -456,6 +472,10 @@ const visitHeritageClauses = (
 };
 
 const visitModifiers = (node: ts.NodeArray<ts.ModifierLike> | undefined) => {
+  if (node && hasModifier(node, ts.SyntaxKind.DeclareKeyword)) {
+    throw new TypeStripError("declare");
+  }
+
   return node?.filter((modifier) => {
     return modifier.kind !== ts.SyntaxKind.PublicKeyword &&
       modifier.kind !== ts.SyntaxKind.PrivateKeyword &&
