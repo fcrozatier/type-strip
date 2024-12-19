@@ -1,4 +1,5 @@
 import ts from "typescript";
+import { ERROR_MESSAGE } from "./errors.ts";
 
 type TypeStripOptions = {
   removeComments: boolean;
@@ -95,6 +96,10 @@ const visitor = (node: ts.Node) => {
 
     case ts.SyntaxKind.NewExpression:
       return visitNewExpression(node as ts.NewExpression);
+
+    // Unsupported syntax
+    case ts.SyntaxKind.EnumDeclaration:
+      throw new Error(ERROR_MESSAGE["enum"]);
   }
 
   return ts.visitEachChild(node, visitor, context);
