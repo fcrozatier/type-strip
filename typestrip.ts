@@ -100,6 +100,8 @@ const visitor = (node: ts.Node) => {
     // Unsupported syntax
     case ts.SyntaxKind.EnumDeclaration:
       throw new Error(ERROR_MESSAGE["enum"]);
+    case ts.SyntaxKind.ModuleDeclaration:
+      throw new Error(ERROR_MESSAGE["namespace"]);
   }
 
   return ts.visitEachChild(node, visitor, context);
