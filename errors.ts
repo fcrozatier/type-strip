@@ -1,12 +1,14 @@
 export const ERROR_MESSAGE = {
   // General
-  "filename": "the fileName must include the extension",
   "extension": "the script must be a TypeScript file",
+  "filename": "the fileName must include the extension",
   // Unsupported features
   "declare":
     "Ambiant Declarations are still up for discussion in the TC39 type annotation proposal. At the moment the proposal doesn't reserve space for ambiant declarations",
   "enum":
     "Enums have runtime semantics and are not supported by the TC39 type annotation proposal. An alternative pattern is to use a const object",
+  "overload":
+    "Function overloads are still up for discussion in the TC39 type annotation proposal. At the moment the proposal doesn't reserve space for function overloads.",
   "namespace":
     "Namespaces are a legacy TypeScript specific construct to provide modularity and an encapsulation. They are not supported by the TC39 type annotation proposal. Standard ES modules are the preferred way to address these needs",
   "parameter-property":

@@ -348,12 +348,15 @@ const visitParameter = (
  */
 const visitFunctionLikeDeclaration = (
   node: ts.FunctionLikeDeclaration,
-): ts.FunctionLikeDeclaration => {
+): ts.FunctionLikeDeclaration | undefined => {
   const parameters = node.parameters.map(visitParameter).filter(isNotUndefined);
-  const modifiers = visitModifiers(node.modifiers) as ts.Modifier[] | undefined;
 
   switch (node.kind) {
-    case ts.SyntaxKind.FunctionDeclaration:
+    case ts.SyntaxKind.FunctionDeclaration: {
+      // Check if it's has a declare modifier first
+      const modifiers = visitModifiers(node.modifiers);
+      if (!node.body) throw new TypeStripError("overload");
+
       return ts.factory.updateFunctionDeclaration(
         node,
         modifiers,
@@ -364,10 +367,11 @@ const visitFunctionLikeDeclaration = (
         undefined, // remove the return type
         node.body,
       );
+    }
     case ts.SyntaxKind.FunctionExpression:
       return ts.factory.updateFunctionExpression(
         node,
-        modifiers,
+        visitModifiers(node.modifiers) as ts.Modifier[] | undefined,
         node.asteriskToken,
         node.name,
         undefined, // remove the type parameter
@@ -378,7 +382,7 @@ const visitFunctionLikeDeclaration = (
     case ts.SyntaxKind.ArrowFunction:
       return ts.factory.updateArrowFunction(
         node,
-        modifiers,
+        visitModifiers(node.modifiers) as ts.Modifier[] | undefined,
         undefined, // remove the type parameter
         parameters,
         undefined, // remove the return type
@@ -388,14 +392,26 @@ const visitFunctionLikeDeclaration = (
     case ts.SyntaxKind.Constructor:
       return ts.factory.updateConstructorDeclaration(
         node,
-        modifiers,
+        visitModifiers(node.modifiers),
         parameters,
         node.body,
       );
     case ts.SyntaxKind.MethodDeclaration:
+      // Strip abstract methods
+      if (
+        node.modifiers &&
+        hasModifier(
+          node.modifiers,
+          ts.SyntaxKind.AbstractKeyword,
+        )
+      ) {
+        return undefined;
+      }
+      if (!node.body) throw new TypeStripError("overload");
+
       return ts.factory.updateMethodDeclaration(
         node,
-        modifiers,
+        visitModifiers(node.modifiers),
         node.asteriskToken,
         node.name,
         undefined, // question token
@@ -407,7 +423,7 @@ const visitFunctionLikeDeclaration = (
     case ts.SyntaxKind.GetAccessor:
       return ts.factory.updateGetAccessorDeclaration(
         node,
-        modifiers,
+        visitModifiers(node.modifiers),
         node.name,
         parameters,
         undefined, // return type
@@ -416,7 +432,7 @@ const visitFunctionLikeDeclaration = (
     case ts.SyntaxKind.SetAccessor:
       return ts.factory.updateSetAccessorDeclaration(
         node,
-        modifiers,
+        visitModifiers(node.modifiers),
         node.name,
         parameters,
         node.body,
@@ -437,8 +453,9 @@ const visitFunctionLikeDeclaration = (
 const visitClassLike = (
   node: ts.ClassLikeDeclaration,
 ): ts.ClassLikeDeclaration | undefined => {
-  const members = node.members.map(visitor);
+  // Check if it has a declare modifier first
   const modifiers = visitModifiers(node.modifiers);
+  const members = node.members.map(visitor).filter(isNotUndefined);
   const heritageClauses = visitHeritageClauses(node.heritageClauses);
 
   switch (node.kind) {
