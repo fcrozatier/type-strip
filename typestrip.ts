@@ -312,7 +312,7 @@ const visitAsExpression = (node: ts.AsExpression | ts.SatisfiesExpression) => {
  */
 const visitExpressionLike = (
   node: ts.NonNullExpression | ts.ParenthesizedExpression,
-): ts.NonNullExpression | ts.ParenthesizedExpression => {
+): ts.Expression => {
   switch (node.kind) {
     case ts.SyntaxKind.ParenthesizedExpression:
       return ts.factory.updateParenthesizedExpression(
@@ -320,10 +320,7 @@ const visitExpressionLike = (
         visitor(node.expression) as ts.Expression,
       );
     case ts.SyntaxKind.NonNullExpression:
-      return ts.factory.updateNonNullExpression(
-        node,
-        visitor(node.expression) as ts.Expression,
-      );
+      return visitor(node.expression) as ts.Expression;
   }
 };
 
@@ -474,7 +471,7 @@ const visitCallExpression = (node: ts.CallExpression): ts.CallExpression => {
     node,
     visitor(node.expression) as ts.Expression,
     undefined,
-    node.arguments,
+    node.arguments.map(visitor).filter(isNotUndefined) as ts.Expression[],
   );
 };
 

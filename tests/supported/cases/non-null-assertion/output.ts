@@ -1,1 +1,1 @@
-document.getElementById("entry")!.innerText = "...";
+document.getElementById("entry").innerText = "...";
