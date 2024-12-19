@@ -75,8 +75,8 @@ const transformer =
     return ts.visitNode(rootNode, visitor);
   };
 
-const visitor = (node: ts.Node) => {
-  switch (node.kind) {
+const visitor = (node: ts.Node | undefined) => {
+  switch (node?.kind) {
     case ts.SyntaxKind.ExportDeclaration:
       return visitExportDeclaration(node as ts.ExportDeclaration);
     case ts.SyntaxKind.ImportDeclaration:
@@ -365,7 +365,7 @@ const visitFunctionLikeDeclaration = (
         undefined, // remove the type parameter
         parameters,
         undefined, // remove the return type
-        node.body,
+        visitor(node.body) as ts.Block,
       );
     }
     case ts.SyntaxKind.FunctionExpression:
@@ -377,7 +377,7 @@ const visitFunctionLikeDeclaration = (
         undefined, // remove the type parameter
         parameters,
         undefined, // remove the return type
-        node.body,
+        visitor(node.body) as ts.Block,
       );
     case ts.SyntaxKind.ArrowFunction:
       return ts.factory.updateArrowFunction(
@@ -387,14 +387,14 @@ const visitFunctionLikeDeclaration = (
         parameters,
         undefined, // remove the return type
         node.equalsGreaterThanToken,
-        node.body,
+        visitor(node.body) as ts.Block,
       );
     case ts.SyntaxKind.Constructor:
       return ts.factory.updateConstructorDeclaration(
         node,
         visitModifiers(node.modifiers),
         parameters,
-        node.body,
+        visitor(node.body) as ts.Block,
       );
     case ts.SyntaxKind.MethodDeclaration:
       // Strip abstract methods
@@ -418,7 +418,7 @@ const visitFunctionLikeDeclaration = (
         undefined, // type parameter
         parameters,
         undefined, // return type
-        node.body,
+        visitor(node.body) as ts.Block,
       );
     case ts.SyntaxKind.GetAccessor:
       return ts.factory.updateGetAccessorDeclaration(
@@ -427,7 +427,7 @@ const visitFunctionLikeDeclaration = (
         node.name,
         parameters,
         undefined, // return type
-        node.body,
+        visitor(node.body) as ts.Block,
       );
     case ts.SyntaxKind.SetAccessor:
       return ts.factory.updateSetAccessorDeclaration(
@@ -435,7 +435,7 @@ const visitFunctionLikeDeclaration = (
         visitModifiers(node.modifiers),
         node.name,
         parameters,
-        node.body,
+        visitor(node.body) as ts.Block,
       );
   }
 };
