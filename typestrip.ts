@@ -379,7 +379,7 @@ const visitFunctionLikeDeclaration = (
     case ts.SyntaxKind.MethodDeclaration:
       return ts.factory.updateMethodDeclaration(
         node,
-        filterModifiers(node.modifiers),
+        visitModifiers(node.modifiers),
         node.asteriskToken,
         node.name,
         undefined, // question token
@@ -406,7 +406,8 @@ const visitClassLike = (
   node: ts.ClassLikeDeclaration,
 ): ts.ClassLikeDeclaration | undefined => {
   const members = node.members.map(visitor);
-  const modifiers = filterModifiers(node.modifiers);
+  const modifiers = visitModifiers(node.modifiers);
+  const heritageClauses = visitHeritageClauses(node.heritageClauses);
 
   switch (node.kind) {
     case ts.SyntaxKind.ClassDeclaration:
@@ -415,7 +416,7 @@ const visitClassLike = (
         modifiers,
         node.name,
         undefined, // remove the type parameter
-        node.heritageClauses,
+        heritageClauses,
         members as unknown as ts.NodeArray<ts.ClassElement>,
       );
     case ts.SyntaxKind.ClassExpression:
@@ -424,10 +425,29 @@ const visitClassLike = (
         modifiers,
         node.name,
         undefined, // remove the type parameter
-        node.heritageClauses,
+        heritageClauses,
         members as unknown as ts.NodeArray<ts.ClassElement>,
       );
   }
+};
+
+const visitHeritageClauses = (
+  node: ts.NodeArray<ts.HeritageClause> | undefined,
+) => {
+  return node?.filter((clause) =>
+    clause.token !== ts.SyntaxKind.ImplementsKeyword
+  );
+};
+
+const visitModifiers = (node: ts.NodeArray<ts.ModifierLike> | undefined) => {
+  return node?.filter((modifier) => {
+    return modifier.kind !== ts.SyntaxKind.PublicKeyword &&
+      modifier.kind !== ts.SyntaxKind.PrivateKeyword &&
+      modifier.kind !== ts.SyntaxKind.ProtectedKeyword &&
+      modifier.kind !== ts.SyntaxKind.ReadonlyKeyword &&
+      modifier.kind !== ts.SyntaxKind.OverrideKeyword &&
+      modifier.kind !== ts.SyntaxKind.AbstractKeyword;
+  });
 };
 
 /**
@@ -443,7 +463,7 @@ const visitPropertyDeclaration = (
 ): ts.PropertyDeclaration => {
   return ts.factory.updatePropertyDeclaration(
     node,
-    filterModifiers(node.modifiers),
+    visitModifiers(node.modifiers),
     node.name,
     undefined, // remove the question or exclamation token
     undefined, // remove the type annotation
@@ -483,17 +503,6 @@ const hasModifier = (
     }
   }
   return false;
-};
-
-const filterModifiers = (node: ts.NodeArray<ts.ModifierLike> | undefined) => {
-  return node?.filter((modifier) => {
-    return modifier.kind !== ts.SyntaxKind.PublicKeyword &&
-      modifier.kind !== ts.SyntaxKind.PrivateKeyword &&
-      modifier.kind !== ts.SyntaxKind.ProtectedKeyword &&
-      modifier.kind !== ts.SyntaxKind.ReadonlyKeyword &&
-      modifier.kind !== ts.SyntaxKind.OverrideKeyword &&
-      modifier.kind !== ts.SyntaxKind.AbstractKeyword;
-  });
 };
 
 const isNotUndefined = <T>(x: T) => x !== undefined;
