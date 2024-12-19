@@ -353,7 +353,7 @@ const visitFunctionLikeDeclaration = (
 
   switch (node.kind) {
     case ts.SyntaxKind.FunctionDeclaration: {
-      // Check if it's has a declare modifier first
+      // Check if it has a declare modifier first
       const modifiers = visitModifiers(node.modifiers);
       if (!node.body) throw new TypeStripError("overload");
 
