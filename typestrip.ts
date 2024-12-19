@@ -122,6 +122,7 @@ const visitor = (node: ts.Node | undefined) => {
     case ts.SyntaxKind.AsExpression:
     case ts.SyntaxKind.NonNullExpression:
     case ts.SyntaxKind.ParenthesizedExpression:
+    case ts.SyntaxKind.ExpressionWithTypeArguments:
       return visitExpressionLike(node as ts.NonNullExpression);
 
     case ts.SyntaxKind.FunctionDeclaration:
@@ -305,13 +306,20 @@ const visitExpressionLike = (
     | ts.AsExpression
     | ts.SatisfiesExpression
     | ts.NonNullExpression
-    | ts.ParenthesizedExpression,
+    | ts.ParenthesizedExpression
+    | ts.ExpressionWithTypeArguments,
 ): ts.Expression => {
   switch (node.kind) {
     case ts.SyntaxKind.ParenthesizedExpression:
       return ts.factory.updateParenthesizedExpression(
         node,
         visitor(node.expression) as ts.Expression,
+      );
+    case ts.SyntaxKind.ExpressionWithTypeArguments:
+      return ts.factory.updateExpressionWithTypeArguments(
+        node,
+        visitor(node.expression) as ts.Expression,
+        undefined, // type arguments
       );
     case ts.SyntaxKind.NonNullExpression:
     case ts.SyntaxKind.AsExpression:
@@ -514,9 +522,17 @@ const visitClassLike = (
 const visitHeritageClauses = (
   node: ts.NodeArray<ts.HeritageClause> | undefined,
 ) => {
-  return node?.filter((clause) =>
-    clause.token !== ts.SyntaxKind.ImplementsKeyword
-  );
+  return node?.filter((heritageClause) =>
+    heritageClause.token !== ts.SyntaxKind.ImplementsKeyword
+  ).map(visitHeritageClause);
+};
+
+const visitHeritageClause = (node: ts.HeritageClause) => {
+  const types = node.types.map(visitor).filter(
+    isNotUndefined,
+  ) as ts.ExpressionWithTypeArguments[];
+
+  return ts.factory.updateHeritageClause(node, types);
 };
 
 const visitModifiers = (node: ts.NodeArray<ts.ModifierLike> | undefined) => {
