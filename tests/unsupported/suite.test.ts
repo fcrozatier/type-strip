@@ -11,14 +11,16 @@ import strip from "../../typestrip.ts";
  * const only = /.* /; // runs all tests
  * const only = /variable-declarations/; // only runs the "variable-declarations" test case
  */
-const only = /.*/;
+const only = [/.*/];
+const skip = undefined;
 
 for await (
   const directory of walk(join(Deno.cwd(), "tests/unsupported/cases"), {
     includeDirs: true,
     includeFiles: false,
     followSymlinks: false,
-    match: [only],
+    match: only,
+    skip,
   })
 ) {
   const files = await Array.fromAsync(
