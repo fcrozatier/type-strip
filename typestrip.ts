@@ -120,8 +120,6 @@ const visitor = (node: ts.Node | undefined) => {
 
     case ts.SyntaxKind.SatisfiesExpression:
     case ts.SyntaxKind.AsExpression:
-      return visitAsExpression(node as ts.AsExpression);
-
     case ts.SyntaxKind.NonNullExpression:
     case ts.SyntaxKind.ParenthesizedExpression:
       return visitExpressionLike(node as ts.NonNullExpression);
@@ -286,7 +284,7 @@ const visitVariableStatement = (node: ts.VariableStatement) => {
  * let x: string = "foo";
  */
 const visitVariableDeclaration = (node: ts.VariableDeclaration): ts.Node => {
-  const initializer = node.initializer ? visitor(node.initializer) : undefined;
+  const initializer = visitor(node.initializer);
 
   return ts.factory.updateVariableDeclaration(
     node,
@@ -298,22 +296,16 @@ const visitVariableDeclaration = (node: ts.VariableDeclaration): ts.Node => {
 };
 
 /**
- * Handle type assertion
- *
- * @example
- * const value = 1 as number;
- */
-const visitAsExpression = (node: ts.AsExpression | ts.SatisfiesExpression) => {
-  return node.expression;
-};
-
-/**
- * Handles non null assertions
+ * Handles expressions
  *
  * @example document.getElementById("entry")!.innerText = "...";
  */
 const visitExpressionLike = (
-  node: ts.NonNullExpression | ts.ParenthesizedExpression,
+  node:
+    | ts.AsExpression
+    | ts.SatisfiesExpression
+    | ts.NonNullExpression
+    | ts.ParenthesizedExpression,
 ): ts.Expression => {
   switch (node.kind) {
     case ts.SyntaxKind.ParenthesizedExpression:
@@ -322,6 +314,8 @@ const visitExpressionLike = (
         visitor(node.expression) as ts.Expression,
       );
     case ts.SyntaxKind.NonNullExpression:
+    case ts.SyntaxKind.AsExpression:
+    case ts.SyntaxKind.SatisfiesExpression:
       return visitor(node.expression) as ts.Expression;
   }
 };
@@ -572,9 +566,11 @@ const visitNewExpression = (
 ): ts.NewExpression => {
   return ts.factory.updateNewExpression(
     node,
-    node.expression,
+    visitor(node.expression) as ts.Expression,
     undefined, // type argument
-    node.arguments,
+    node.arguments?.map(visitor).filter(isNotUndefined) as
+      | ts.Expression[]
+      | undefined,
   );
 };
 
