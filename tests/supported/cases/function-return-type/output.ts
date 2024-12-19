@@ -4,3 +4,7 @@ function add(x, y) {
 }
 // Arrow Function
 const subtract = (x, y) => x - y;
+// Type guard
+function isString(value) {
+    return typeof value === "string";
+}
