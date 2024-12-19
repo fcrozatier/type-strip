@@ -35,7 +35,7 @@ for await (
     const testCase = basename(directory.path);
 
     // convention: the test case prefix corresponds to the error code
-    const errorCode = testCase.split("_")[0] as keyof typeof ERROR_MESSAGE;
+    const errorCode = testCase.split(" ")[0] as keyof typeof ERROR_MESSAGE;
     const errorMessage = ERROR_MESSAGE[errorCode];
 
     if (!errorMessage) throw new Error("no error message");
