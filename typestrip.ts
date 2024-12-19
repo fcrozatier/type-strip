@@ -539,6 +539,9 @@ const visitModifiers = (node: ts.NodeArray<ts.ModifierLike> | undefined) => {
   if (node && hasModifier(node, ts.SyntaxKind.DeclareKeyword)) {
     throw new TypeStripError("declare");
   }
+  if (node && hasModifier(node, ts.SyntaxKind.AccessorKeyword)) {
+    throw new TypeStripError("accessor-keyword");
+  }
 
   return node?.filter((modifier) => {
     return modifier.kind !== ts.SyntaxKind.PublicKeyword &&
