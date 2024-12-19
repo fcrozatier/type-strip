@@ -388,8 +388,24 @@ const visitFunctionLikeDeclaration = (
         undefined, // return type
         node.body,
       );
+    case ts.SyntaxKind.GetAccessor:
+      return ts.factory.updateGetAccessorDeclaration(
+        node,
+        visitModifiers(node.modifiers),
+        node.name,
+        parameters,
+        undefined, // return type
+        node.body,
+      );
+    case ts.SyntaxKind.SetAccessor:
+      return ts.factory.updateSetAccessorDeclaration(
+        node,
+        visitModifiers(node.modifiers),
+        node.name,
+        parameters,
+        node.body,
+      );
   }
-  return node;
 };
 
 /**
