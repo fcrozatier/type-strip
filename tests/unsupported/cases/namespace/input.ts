@@ -3,5 +3,3 @@ namespace MyNamespace {
     console.log(`Namespace log: ${message}`);
   }
 }
-
-MyNamespace.log("Hello, Namespace!");

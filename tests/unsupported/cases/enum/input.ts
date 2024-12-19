@@ -4,5 +4,3 @@ enum Direction {
   Left = "LEFT",
   Right = "RIGHT",
 }
-
-const move: Direction = Direction.Up;

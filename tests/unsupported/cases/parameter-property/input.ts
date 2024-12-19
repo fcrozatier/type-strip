@@ -7,4 +7,3 @@ class Params {
     // No body necessary
   }
 }
-const a = new Params(1, 2, 3);
