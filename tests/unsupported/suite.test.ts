@@ -22,10 +22,12 @@ for await (
   })
 ) {
   const files = await Array.fromAsync(
-    walk(directory.path, { exts: [".ts"], maxDepth: 1 }),
+    walk(directory.path, { exts: [".ts", ".tsx"], maxDepth: 1 }),
   );
 
-  const inputEntry = files.find((file) => file.name === "input.ts");
+  const inputEntry = files.find((file) =>
+    file.name === "input.ts" || file.name === "input.tsx"
+  );
 
   if (inputEntry) {
     const testCase = basename(directory.path);
@@ -33,8 +35,12 @@ for await (
     const inputCode = await Deno.readTextFile(inputEntry.path);
 
     Deno.test(`handles ${testCase}`, () => {
-      // @ts-ignore we use a convention were the test case corresponds to the error code
-      assertThrows(() => strip(inputCode), Error, ERROR_MESSAGE[testCase]);
+      assertThrows(
+        () => strip(inputCode, { fileName: inputEntry.name }),
+        Error,
+        // @ts-ignore convention: the test case corresponds to the error code
+        ERROR_MESSAGE[testCase],
+      );
     });
   }
 }

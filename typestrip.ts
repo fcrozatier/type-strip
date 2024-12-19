@@ -1,8 +1,14 @@
 import ts from "typescript";
-import { ERROR_MESSAGE } from "./errors.ts";
+import { TypeStripError } from "./errors.ts";
 
 type TypeStripOptions = {
-  removeComments: boolean;
+  removeComments?: boolean;
+  fileName?: string;
+};
+
+const defaultOptions: Required<TypeStripOptions> = {
+  removeComments: false,
+  fileName: "input.ts",
 };
 
 let sourceFile: ts.SourceFile;
@@ -17,17 +23,30 @@ let context: ts.TransformationContext;
  */
 export default (
   input: string,
-  options: TypeStripOptions = { removeComments: false },
+  options?: TypeStripOptions,
 ) => {
+  const optionsWitDefaults = { ...defaultOptions, ...options };
+  const fileNameSegments = optionsWitDefaults.fileName.split(".");
+
+  if (fileNameSegments?.length < 2) {
+    throw new TypeStripError("filename");
+  }
+  const extension = fileNameSegments[fileNameSegments.length - 1];
+  if (extension === "jsx" || extension === "tsx") {
+    throw new TypeStripError("jsx");
+  }
+  if (extension !== "ts") {
+    throw new TypeStripError("extension");
+  }
   sourceFile = ts.createSourceFile(
-    "input.ts",
+    optionsWitDefaults.fileName,
     input,
     ts.ScriptTarget.Latest,
     false, // setParentNodes
     ts.ScriptKind.TS,
   );
 
-  return stripTypes(sourceFile, options);
+  return stripTypes(sourceFile, optionsWitDefaults);
 };
 
 const stripTypes = (
@@ -76,7 +95,8 @@ const visitor = (node: ts.Node) => {
       return visitAsExpression(node as ts.AsExpression);
 
     case ts.SyntaxKind.NonNullExpression:
-      return visitNonNullExpression(node as ts.NonNullExpression);
+    case ts.SyntaxKind.ParenthesizedExpression:
+      return visitExpressionLike(node as ts.NonNullExpression);
 
     case ts.SyntaxKind.FunctionDeclaration:
     case ts.SyntaxKind.MethodDeclaration:
@@ -99,9 +119,11 @@ const visitor = (node: ts.Node) => {
 
     // Unsupported syntax
     case ts.SyntaxKind.EnumDeclaration:
-      throw new Error(ERROR_MESSAGE["enum"]);
+      throw new TypeStripError("enum");
     case ts.SyntaxKind.ModuleDeclaration:
-      throw new Error(ERROR_MESSAGE["namespace"]);
+      throw new TypeStripError("namespace");
+    case ts.SyntaxKind.JsxElement:
+      throw new TypeStripError("jsx");
   }
 
   return ts.visitEachChild(node, visitor, context);
@@ -240,17 +262,25 @@ const visitAsExpression = (node: ts.AsExpression | ts.SatisfiesExpression) => {
 };
 
 /**
- * Handle non null assertion
+ * Handles non null assertions
  *
  * @example document.getElementById("entry")!.innerText = "...";
  */
-const visitNonNullExpression = (
-  node: ts.NonNullExpression,
-): ts.NonNullExpression => {
-  return ts.factory.updateNonNullExpression(
-    node,
-    visitor(node.expression) as ts.Expression,
-  );
+const visitExpressionLike = (
+  node: ts.NonNullExpression | ts.ParenthesizedExpression,
+): ts.NonNullExpression | ts.ParenthesizedExpression => {
+  switch (node.kind) {
+    case ts.SyntaxKind.ParenthesizedExpression:
+      return ts.factory.updateParenthesizedExpression(
+        node,
+        visitor(node.expression) as ts.Expression,
+      );
+    case ts.SyntaxKind.NonNullExpression:
+      return ts.factory.updateNonNullExpression(
+        node,
+        visitor(node.expression) as ts.Expression,
+      );
+  }
 };
 
 /**
@@ -272,7 +302,7 @@ const visitParameter = (
       ts.SyntaxKind.ReadonlyKeyword,
     ])
   ) {
-    throw new Error(ERROR_MESSAGE["parameter-properties"]);
+    throw new TypeStripError("parameter-property");
   }
 
   if (ts.isIdentifier(node.name) && node.name.escapedText === "this") {

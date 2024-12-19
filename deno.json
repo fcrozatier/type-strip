@@ -14,5 +14,5 @@
     "ts-blank-space": "npm:ts-blank-space@^0.4.4",
     "typescript": "npm:typescript@^5.7.2"
   },
-  "exclude": ["tests/**/input.ts", "tests/**/output.ts"]
+  "exclude": ["tests/**/input.ts", "tests/**/input.tsx", "tests/**/output.ts"]
 }

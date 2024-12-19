@@ -14,8 +14,8 @@ import TypeStrip from "../../typestrip.ts";
  * const only = undefined
  * const skip = [/.* /]
  */
-const only = undefined;
-const skip = [/.*/];
+const only = [/.*/];
+const skip = undefined;
 
 for await (
   const directory of walk(join(Deno.cwd(), "tests/supported/cases"), {
