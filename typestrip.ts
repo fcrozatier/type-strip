@@ -2,13 +2,25 @@ import ts from "typescript";
 import { TypeStripError } from "./errors.ts";
 
 type TypeStripOptions = {
+  /**
+   * Whether to strip comments
+   */
   removeComments?: boolean;
+  /**
+   * The file name used internally. Only .ts files are accepted
+   */
   fileName?: string;
+  /**
+   * A simple postprocessing step to decode Unicode escape sequences and fix output indentation to 2 spaces.
+   * If you only use ASCII characters in your code (no accents, emojis etc) or if you don't care about these characters remaining human readable in the source, you can keep this option to `false`
+   */
+  prettyPrint?: boolean;
 };
 
 const defaultOptions: Required<TypeStripOptions> = {
   removeComments: false,
   fileName: "input.ts",
+  prettyPrint: false,
 };
 
 let sourceFile: ts.SourceFile;
@@ -51,7 +63,7 @@ export default (
 
 const stripTypes = (
   sourceFile: ts.SourceFile,
-  { removeComments }: TypeStripOptions,
+  { removeComments, prettyPrint }: TypeStripOptions,
 ) => {
   printer = ts.createPrinter({
     omitTrailingSemicolon: false,
@@ -61,20 +73,25 @@ const stripTypes = (
   // @ts-ignore Actually a transformer can return undefined
   const result = ts.transform(sourceFile, [transformer]);
   const transformed = result.transformed[0];
-
-  const output = decodeUnicodeEscapes(
-    printer.printFile(transformed as ts.SourceFile),
-  );
+  const output = printer.printFile(transformed as ts.SourceFile);
   result.dispose();
-  return output;
+  return prettyPrint ? pretty(output) : output;
 };
 
-function decodeUnicodeEscapes(output: string): string {
-  return output.replace(
-    /\\u([\dA-F]{4})/gi,
-    (_, hex) => String.fromCharCode(parseInt(hex, 16)),
-  );
-}
+/**
+ * Decodes Unicode escape sequences, and fix the default indentation used by the printer to be 2 spaces instead of 4
+ */
+const pretty = (input: string) => {
+  // @ts-ignore the replacer signature is wild
+  return input.replace(/\\u([\dA-F]{4})|( {4})/gi, (_, hex, white_space) => {
+    if (hex) {
+      return String.fromCharCode(parseInt(hex, 16));
+    }
+    if (white_space) {
+      return "  ";
+    }
+  });
+};
 
 const transformer =
   <T extends ts.Node>(transformationContext: ts.TransformationContext) =>

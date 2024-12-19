@@ -7,8 +7,8 @@ const numArray = [1, 2, 3];
 const strArray = ["a", "b", "c"];
 const mixedTuple = [42, "tuple", true];
 try {
-    throw new Error("Something went wrong!");
+  throw new Error("Something went wrong!");
 }
 catch (error) {
-    console.error(error);
+  console.error(error);
 }
