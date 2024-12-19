@@ -1,5 +1,8 @@
 // Class Declaration
 class Person {
+  // Index signature
+  [key: string]: any;
+
   name: string;
   constructor(name: string) {
       this.name = name;

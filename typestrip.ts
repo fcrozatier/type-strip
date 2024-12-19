@@ -494,7 +494,9 @@ const visitClassLike = (
 ): ts.ClassLikeDeclaration | undefined => {
   // Check if it has a declare modifier first
   const modifiers = visitModifiers(node.modifiers);
-  const members = node.members.map(visitor).filter(isNotUndefined);
+  const members = node.members.map(visitor).filter((
+    m,
+  ) => (m && !ts.isIndexSignatureDeclaration(m)));
   const heritageClauses = visitHeritageClauses(node.heritageClauses);
 
   switch (node.kind) {
