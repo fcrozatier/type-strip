@@ -3,8 +3,8 @@ import tsBlankSpace from "ts-blank-space";
 import ts from "typescript";
 import typeStrip from "./index.ts";
 
-const path = "./fixtures.ts";
-console.log(`%cinput ts ${path}`, "color: magenta");
+const path = "fixtures.ts";
+console.log(`%cinput ${path}`, "color: magenta");
 const code = await Deno.readTextFile(path);
 
 Deno.bench("ts.transpileModule", () => {
