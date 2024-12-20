@@ -2,7 +2,7 @@ import { assertThrows } from "@std/assert";
 import { walk } from "@std/fs";
 import { basename, join } from "@std/path";
 import { ERROR_MESSAGE, TypeStripError } from "../../errors.ts";
-import strip from "../../typestrip.ts";
+import strip from "../../index.ts";
 
 /**
  * Regex or string to filter the tests to run

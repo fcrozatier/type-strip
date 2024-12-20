@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { walk } from "@std/fs";
 import { basename, join } from "@std/path";
-import TypeStrip from "../../typestrip.ts";
+import TypeStrip from "../../index.ts";
 
 /**
  * Regex or string to filter the tests to run

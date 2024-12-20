@@ -1,6 +1,7 @@
 import * as esbuild from "esbuild";
 import tsBlankSpace from "ts-blank-space";
 import ts from "typescript";
+import typeStrip from "./index.ts";
 
 const path = "./fixtures.ts";
 console.log(`%cinput ts ${path}`, "color: magenta");
@@ -18,8 +19,12 @@ Deno.bench("ts.transpileModule", () => {
   });
 });
 
-Deno.bench("tsBlankSpace", { baseline: true }, () => {
+Deno.bench("tsBlankSpace", () => {
   tsBlankSpace(code);
+});
+
+Deno.bench("type-strip", { baseline: true }, () => {
+  typeStrip(code, { prettyPrint: true });
 });
 
 Deno.bench("esbuild", async () => {
