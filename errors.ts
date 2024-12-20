@@ -14,7 +14,7 @@ export const ERROR_MESSAGE = {
   "jsx":
     "JSX is not supported. https://github.com/fcrozatier/type-strip?tab=readme-ov-file#jsx",
   "namespace":
-    "Namespaces are not supported. https://github.com/fcrozatier/type-strip?tab=readme-ov-file#namespace",
+    "Namespaces are not supported. https://github.com/fcrozatier/type-strip?tab=readme-ov-file#namespaces",
   "overload":
     "Function overloads are not supported. https://github.com/fcrozatier/type-strip?tab=readme-ov-file#overloads",
   "parameter-property":
