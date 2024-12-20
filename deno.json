@@ -1,5 +1,8 @@
 {
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "name": "@fcrozatier/type-strip",
+  "license": "MIT",
+  "exports": "./index.ts",
   "tasks": {
     "gen:fixtures": "deno run --allow-write fixtures-script.ts",
     "bench": "deno bench --allow-read --allow-env --allow-run bench.ts ",
