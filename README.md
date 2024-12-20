@@ -1,10 +1,10 @@
 # The Type Strip
 
-*A type-stripper keeping your code forward compatible with the TC39 Type Annotation Proposal*
+*A type-stripper that keeps your code forward compatible with the TC39 Type Annotation Proposal*
 
 `TypeStrip` is a lightweight TypeScript type-stripper: it takes TypeScript code as input and outputs JavaScript code with the type annotations removed.
 
-The main goal of this project is to also ensure **forward compatibility** of your code with the TC39 [Type Annotation Proposal](https://tc39.es/proposal-type-annotations/). This means that when the proposal reaches stage 4, you'll be able to transition your code seamlessly by just changing the file extensions to `.js`, and you won't need a transpilation step anymore.
+One of the goals of this project is to also ensure **forward compatibility** of your code with the TC39 [Type Annotation Proposal](https://tc39.es/proposal-type-annotations/). This means that when the proposal reaches stage 4, you'll be able to seamlessly change your file extensions to `.js`, and won't need a transpilation step anymore.
 
 ## Features
 
@@ -12,24 +12,45 @@ The main goal of this project is to also ensure **forward compatibility** of you
 - Throws an error when an [unsupported syntax](#unsupported-syntaxes) is detected.
 - Performs automatic semi-column insertion.
 
-## How to Use?
+## Installation
 
-### Install
+Depending on your runtime / package-manager:
 
 ```sh
-# deno
 deno add jsr:@fcrozatier/type-strip
-
-# npm (one of the below, depending on your package manager)
 npx jsr add @fcrozatier/type-strip
-yarn dlx jsr add @fcrozatier/type-strip
 pnpm dlx jsr add @fcrozatier/type-strip
-bunx jsr add @fcrozatier/type-strip
+yarn dlx jsr add @fcrozatier/type-strip
 ```
 
+## Usage
+
+Strip a string of code, files etc.
 
 
-<h2 id="unsupported-syntaxes">Unsupported syntaxes</h2>
+```ts
+import strip from '@fcrozatier/type-strip';
+
+console.log(strip("let num: number = 0;", {/* options */}));
+//-> let num = 0;
+```
+
+### Options
+
+<dl>
+<dt><code>removeComments?: boolean</code></dt>
+<dd>Whether to strip comments</dd>
+<dd><em>Default</em> <code>false</code></dd>
+<dt><code>prettyPrint?: boolean</code></dt>
+<dd>A simple postprocessing step to decode Unicode escape sequences and fix output indentation to 2 spaces. If you only use ASCII characters in your code (no accents, emojis etc) or if you don't care about these characters remaining human readable in the source, you can keep this option to <code>false</code>
+</dd>
+<dd><em>Default</em> <code>false</code></dd>
+<dt><code>fileName?: string</code></dt>
+<dd>The file name used internally. Only .ts files are accepted</dd>
+<dd><em>Default</em> <code>"input.ts"</code></dd>
+</dl>
+
+## Unsupported syntaxes
 
 The goal of the TC39 [proposal](https://tc39.es/proposal-type-annotations/) is to add type annotations without modifying the semantics of the language. This means that TypeScript-only features requiring a transpilation step are not supported.
 
