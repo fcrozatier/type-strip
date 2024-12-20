@@ -2,8 +2,7 @@
   "version": "0.0.1",
   "tasks": {
     "bench": "deno bench --allow-read --allow-env --allow-run bench.ts ",
-    "fixtures": "deno run --allow-write script.ts",
-    "main": "deno run --allow-read --allow-write --allow-env main.ts",
+    "gen:fixtures": "deno run --allow-write fixtures-script.ts",
     "test": "deno test --allow-read"
   },
   "imports": {
