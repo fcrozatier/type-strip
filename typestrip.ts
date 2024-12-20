@@ -108,7 +108,6 @@ const visitor = (node: ts.Node | undefined) => {
     case ts.SyntaxKind.ImportDeclaration:
       return visitImportDeclaration(node as ts.ImportDeclaration);
 
-    // Remove type annotations
     case ts.SyntaxKind.InterfaceDeclaration:
     case ts.SyntaxKind.TypeAliasDeclaration:
       return undefined;
@@ -118,9 +117,10 @@ const visitor = (node: ts.Node | undefined) => {
     case ts.SyntaxKind.VariableDeclaration:
       return visitVariableDeclaration(node as ts.VariableDeclaration);
 
-    case ts.SyntaxKind.ParenthesizedExpression:
     case ts.SyntaxKind.ExpressionWithTypeArguments:
-      return visitExpressionLike(node as ts.ParenthesizedExpression);
+      return visitExpressionWithTypeArguments(
+        node as ts.ExpressionWithTypeArguments,
+      );
 
     case ts.SyntaxKind.NonNullExpression:
     case ts.SyntaxKind.AsExpression:
@@ -296,34 +296,19 @@ const visitVariableDeclaration = (node: ts.VariableDeclaration): ts.Node => {
     node,
     visitor(node.name) as ts.BindingName,
     undefined, // exclamationToken
-    undefined, // remove the type
+    undefined, // type
     visitor(node.initializer) as ts.Expression,
   );
 };
 
-/**
- * Handles expressions
- *
- * @example document.getElementById("entry")!.innerText = "...";
- */
-const visitExpressionLike = (
-  node:
-    | ts.ParenthesizedExpression
-    | ts.ExpressionWithTypeArguments,
+const visitExpressionWithTypeArguments = (
+  node: ts.ExpressionWithTypeArguments,
 ): ts.Expression => {
-  switch (node.kind) {
-    case ts.SyntaxKind.ParenthesizedExpression:
-      return ts.factory.updateParenthesizedExpression(
-        node,
-        visitor(node.expression) as ts.Expression,
-      );
-    case ts.SyntaxKind.ExpressionWithTypeArguments:
-      return ts.factory.updateExpressionWithTypeArguments(
-        node,
-        visitor(node.expression) as ts.Expression,
-        undefined, // type arguments
-      );
-  }
+  return ts.factory.updateExpressionWithTypeArguments(
+    node,
+    visitor(node.expression) as ts.Expression,
+    undefined, // typeArguments
+  );
 };
 
 const visitTaggedTemplateExpression = (
@@ -374,18 +359,15 @@ const visitParameter = (
     return undefined;
   }
 
-  if (node.type) {
-    return ts.factory.updateParameterDeclaration(
-      node,
-      node.modifiers,
-      node.dotDotDotToken,
-      node.name,
-      undefined, // remove the question token
-      undefined, // remove the type
-      visitor(node.initializer) as ts.Expression,
-    );
-  }
-  return node;
+  return ts.factory.updateParameterDeclaration(
+    node,
+    node.modifiers,
+    node.dotDotDotToken,
+    visitor(node.name) as ts.BindingName,
+    undefined, // remove the question token
+    undefined, // remove the type
+    visitor(node.initializer) as ts.Expression,
+  );
 };
 
 /**
@@ -411,9 +393,9 @@ const visitFunctionLikeDeclaration = (
         modifiers,
         node.asteriskToken,
         node.name,
-        undefined, // remove the type parameter
+        undefined, // typeParameters
         parameters,
-        undefined, // remove the return type
+        undefined, // return type
         visitor(node.body) as ts.Block,
       );
     }
@@ -423,18 +405,18 @@ const visitFunctionLikeDeclaration = (
         visitModifiers(node.modifiers) as ts.Modifier[] | undefined,
         node.asteriskToken,
         node.name,
-        undefined, // remove the type parameter
+        undefined, // typeParameters
         parameters,
-        undefined, // remove the return type
+        undefined, // return type
         visitor(node.body) as ts.Block,
       );
     case ts.SyntaxKind.ArrowFunction:
       return ts.factory.updateArrowFunction(
         node,
         visitModifiers(node.modifiers) as ts.Modifier[] | undefined,
-        undefined, // remove the type parameter
+        undefined, // typeParameters
         parameters,
-        undefined, // remove the return type
+        undefined, // return type
         node.equalsGreaterThanToken,
         visitor(node.body) as ts.Block,
       );
@@ -463,8 +445,8 @@ const visitFunctionLikeDeclaration = (
         visitModifiers(node.modifiers),
         node.asteriskToken,
         node.name,
-        undefined, // question token
-        undefined, // type parameter
+        undefined, // questionToken
+        undefined, // typeParameters
         parameters,
         undefined, // return type
         visitor(node.body) as ts.Block,
@@ -524,7 +506,7 @@ const visitClassLike = (
         node,
         modifiers,
         node.name,
-        undefined, // remove the type parameter
+        undefined, // typeParameters
         heritageClauses,
         members as unknown as ts.NodeArray<ts.ClassElement>,
       );
@@ -533,7 +515,7 @@ const visitClassLike = (
         node,
         modifiers,
         node.name,
-        undefined, // remove the type parameter
+        undefined, // typeParameters
         heritageClauses,
         members as unknown as ts.NodeArray<ts.ClassElement>,
       );
@@ -589,8 +571,8 @@ const visitPropertyDeclaration = (
     node,
     visitModifiers(node.modifiers),
     node.name,
-    undefined, // remove the question or exclamation token
-    undefined, // remove the type annotation
+    undefined, // questionOrExclamationToken
+    undefined, // type
     node.initializer,
   );
 };
@@ -607,7 +589,7 @@ const visitNewExpression = (
   return ts.factory.updateNewExpression(
     node,
     visitor(node.expression) as ts.Expression,
-    undefined, // type argument
+    undefined, // typeArguments
     node.arguments?.map(visitor).filter(isNotUndefined) as ts.Expression[],
   );
 };
