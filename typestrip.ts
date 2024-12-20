@@ -121,12 +121,14 @@ const visitor = (node: ts.Node | undefined) => {
       return visitExpressionWithTypeArguments(
         node as ts.ExpressionWithTypeArguments,
       );
-
     case ts.SyntaxKind.NonNullExpression:
     case ts.SyntaxKind.AsExpression:
     case ts.SyntaxKind.SatisfiesExpression:
       return visitor((node as ts.NonNullExpression).expression);
-
+    case ts.SyntaxKind.CallExpression:
+      return visitCallExpression(node as ts.CallExpression);
+    case ts.SyntaxKind.NewExpression:
+      return visitNewExpression(node as ts.NewExpression);
     case ts.SyntaxKind.TaggedTemplateExpression:
       return visitTaggedTemplateExpression(node as ts.TaggedTemplateExpression);
     case ts.SyntaxKind.TemplateExpression:
@@ -141,18 +143,12 @@ const visitor = (node: ts.Node | undefined) => {
     case ts.SyntaxKind.ArrowFunction:
       return visitFunctionLikeDeclaration(node as ts.FunctionLikeDeclaration);
 
-    case ts.SyntaxKind.CallExpression:
-      return visitCallExpression(node as ts.CallExpression);
+    case ts.SyntaxKind.PropertyDeclaration:
+      return visitPropertyDeclaration(node as ts.PropertyDeclaration);
 
     case ts.SyntaxKind.ClassDeclaration:
     case ts.SyntaxKind.ClassExpression:
       return visitClassLike(node as ts.ClassLikeDeclaration);
-
-    case ts.SyntaxKind.PropertyDeclaration:
-      return visitPropertyDeclaration(node as ts.PropertyDeclaration);
-
-    case ts.SyntaxKind.NewExpression:
-      return visitNewExpression(node as ts.NewExpression);
 
     // Unsupported syntax
     case ts.SyntaxKind.EnumDeclaration:
@@ -545,6 +541,9 @@ const visitModifiers = (node: ts.NodeArray<ts.ModifierLike> | undefined) => {
   if (node && hasModifier(node, ts.SyntaxKind.AccessorKeyword)) {
     throw new TypeStripError("accessor-keyword");
   }
+  if (node && hasModifier(node, ts.SyntaxKind.Decorator)) {
+    throw new TypeStripError("decorator");
+  }
 
   return node?.filter((modifier) => {
     return modifier.kind !== ts.SyntaxKind.PublicKeyword &&
@@ -573,7 +572,7 @@ const visitPropertyDeclaration = (
     visitor(node.name) as ts.PropertyName,
     undefined, // questionOrExclamationToken
     undefined, // type
-    node.initializer,
+    visitor(node.initializer) as ts.Expression,
   );
 };
 

@@ -7,6 +7,7 @@ export const ERROR_MESSAGE = {
     "The `accessor` is a TypeScript-only feature with special semantics and is not part of the TC39 type annotation proposal. An alternative is to use explicit getters/setters",
   "declare":
     "Ambient Declarations are still up for discussion in the TC39 type annotation proposal. At the moment the proposal doesn't reserve space for ambient declarations",
+  "decorator": "Decorators are not supported",
   "enum":
     "Enums have runtime semantics and are not supported by the TC39 type annotation proposal. An alternative pattern is to use a const object",
   "jsx":
