@@ -118,12 +118,17 @@ const visitor = (node: ts.Node | undefined) => {
     case ts.SyntaxKind.VariableDeclaration:
       return visitVariableDeclaration(node as ts.VariableDeclaration);
 
-    case ts.SyntaxKind.SatisfiesExpression:
-    case ts.SyntaxKind.AsExpression:
-    case ts.SyntaxKind.NonNullExpression:
     case ts.SyntaxKind.ParenthesizedExpression:
     case ts.SyntaxKind.ExpressionWithTypeArguments:
-      return visitExpressionLike(node as ts.NonNullExpression);
+      return visitExpressionLike(node as ts.ParenthesizedExpression);
+
+    case ts.SyntaxKind.NonNullExpression:
+    case ts.SyntaxKind.AsExpression:
+    case ts.SyntaxKind.SatisfiesExpression:
+      return visitor((node as ts.NonNullExpression).expression);
+
+    case ts.SyntaxKind.TaggedTemplateExpression:
+      return visitTaggedTemplateExpression(node as ts.TaggedTemplateExpression);
 
     case ts.SyntaxKind.FunctionDeclaration:
     case ts.SyntaxKind.MethodDeclaration:
@@ -301,9 +306,6 @@ const visitVariableDeclaration = (node: ts.VariableDeclaration): ts.Node => {
  */
 const visitExpressionLike = (
   node:
-    | ts.AsExpression
-    | ts.SatisfiesExpression
-    | ts.NonNullExpression
     | ts.ParenthesizedExpression
     | ts.ExpressionWithTypeArguments,
 ): ts.Expression => {
@@ -319,11 +321,16 @@ const visitExpressionLike = (
         visitor(node.expression) as ts.Expression,
         undefined, // type arguments
       );
-    case ts.SyntaxKind.NonNullExpression:
-    case ts.SyntaxKind.AsExpression:
-    case ts.SyntaxKind.SatisfiesExpression:
-      return visitor(node.expression) as ts.Expression;
   }
+};
+
+const visitTaggedTemplateExpression = (node: ts.TaggedTemplateExpression) => {
+  return ts.factory.updateTaggedTemplateExpression(
+    node,
+    node.tag,
+    undefined, // type arguments
+    node.template,
+  );
 };
 
 /**
@@ -472,7 +479,7 @@ const visitCallExpression = (node: ts.CallExpression): ts.CallExpression => {
   return ts.factory.updateCallExpression(
     node,
     visitor(node.expression) as ts.Expression,
-    undefined,
+    undefined, // typeArguments
     node.arguments.map(visitor).filter(isNotUndefined) as ts.Expression[],
   );
 };
@@ -587,9 +594,7 @@ const visitNewExpression = (
     node,
     visitor(node.expression) as ts.Expression,
     undefined, // type argument
-    node.arguments?.map(visitor).filter(isNotUndefined) as
-      | ts.Expression[]
-      | undefined,
+    node.arguments?.map(visitor).filter(isNotUndefined) as ts.Expression[],
   );
 };
 
