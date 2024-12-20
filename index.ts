@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { TypeStripError } from "./errors.ts";
 
-type TypeStripOptions = {
+export type TypeStripOptions = {
   /**
    * Whether to strip comments
    */
