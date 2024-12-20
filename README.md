@@ -12,6 +12,23 @@ The main goal of this project is to also ensure **forward compatibility** of you
 - Throws an error when an [unsupported syntax](#unsupported-syntaxes) is detected.
 - Performs automatic semi-column insertion.
 
+## How to Use?
+
+### Install
+
+```sh
+# deno
+deno add jsr:@fcrozatier/type-strip
+
+# npm (one of the below, depending on your package manager)
+npx jsr add @fcrozatier/type-strip
+yarn dlx jsr add @fcrozatier/type-strip
+pnpm dlx jsr add @fcrozatier/type-strip
+bunx jsr add @fcrozatier/type-strip
+```
+
+
+
 <h2 id="unsupported-syntaxes">Unsupported syntaxes</h2>
 
 The goal of the TC39 [proposal](https://tc39.es/proposal-type-annotations/) is to add type annotations without modifying the semantics of the language. This means that TypeScript-only features requiring a transpilation step are not supported.
