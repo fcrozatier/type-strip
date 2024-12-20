@@ -38,16 +38,18 @@ console.log(strip("let num: number = 0;", {/* options */}));
 ### Options
 
 <dl>
-<dt><code>removeComments?: boolean</code></dt>
-<dd>Whether to strip comments</dd>
-<dd><em>Default</em> <code>false</code></dd>
-<dt><code>prettyPrint?: boolean</code></dt>
-<dd>A simple postprocessing step to decode Unicode escape sequences and fix output indentation to 2 spaces. If you only use ASCII characters in your code (no accents, emojis etc) or if you don't care about these characters remaining human readable in the source, you can keep this option to <code>false</code>
-</dd>
-<dd><em>Default</em> <code>false</code></dd>
-<dt><code>fileName?: string</code></dt>
-<dd>The file name used internally. Only .ts files are accepted</dd>
-<dd><em>Default</em> <code>"input.ts"</code></dd>
+  <dt><code>removeComments?: boolean</code></dt>
+  <dd>Whether to strip comments</dd>
+  <dd><em>Default</em> <code>false</code></dd>
+
+  <dt><code>prettyPrint?: boolean</code></dt>
+  <dd>A simple postprocessing step to decode Unicode escape sequences and fix output indentation to 2 spaces. If you only use ASCII characters in your code (no accents, emojis etc) or if you don't care about these characters remaining human readable in the source, you can keep this option to <code>false</code>
+  </dd>
+  <dd><em>Default</em> <code>false</code></dd>
+
+  <dt><code>fileName?: string</code></dt>
+  <dd>The file name used internally. Only .ts files are accepted</dd>
+  <dd><em>Default</em> <code>"input.ts"</code></dd>
 </dl>
 
 ## Unsupported syntaxes
