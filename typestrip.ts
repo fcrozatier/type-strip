@@ -285,14 +285,12 @@ const visitVariableStatement = (node: ts.VariableStatement) => {
  * let x: string = "foo";
  */
 const visitVariableDeclaration = (node: ts.VariableDeclaration): ts.Node => {
-  const initializer = visitor(node.initializer);
-
   return ts.factory.updateVariableDeclaration(
     node,
-    node.name,
-    node.exclamationToken,
+    visitor(node.name) as ts.BindingName,
+    undefined, // exclamationToken
     undefined, // remove the type
-    initializer as ts.Expression,
+    visitor(node.initializer) as ts.Expression,
   );
 };
 
