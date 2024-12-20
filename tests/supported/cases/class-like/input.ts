@@ -11,16 +11,14 @@ class Person {
       return `Hello, my name is ${this.name}`;
   }
 }
-// Class Expression
-export class {
-  name: string;
-  constructor(name: string) {
-    this.name = name;
-  }
-  getGreeting(): string {
-    return `Hello, my name is ${this.name}`;
-  }
-}
+export const Mixin = <
+T extends Constructor<Thing>,
+>(
+  superclass: T,
+) => {
+  // Class Expression
+  return class extends superclass implements Interface { };
+};
 // Computed properties
 const computed = <T>():T => "computed";
 

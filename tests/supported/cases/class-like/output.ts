@@ -8,16 +8,11 @@ class Person {
     return `Hello, my name is ${this.name}`;
   }
 }
-// Class Expression
-export class {
-  name;
-  constructor(name) {
-    this.name = name;
-  }
-  getGreeting() {
-    return `Hello, my name is ${this.name}`;
-  }
-}
+export const Mixin = (superclass) => {
+  // Class Expression
+  return class extends superclass {
+  };
+};
 // Computed properties
 const computed = () => "computed";
 class Person {
