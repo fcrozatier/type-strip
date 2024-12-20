@@ -305,4 +305,4 @@ try {
 }
 
 const iterations = parseInt(Deno.args[0]) ?? 100;
-generateFixtures("fixtures.ts", iterations);
+generateFixtures("scripts/fixtures.ts", iterations);
