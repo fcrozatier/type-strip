@@ -269,16 +269,15 @@ const visitImportSpecifier = (node: ts.ImportSpecifier) => {
   return node;
 };
 
-const visitVariableStatement = (node: ts.VariableStatement) => {
-  const modifiers = visitModifiers(node.modifiers);
-  const declarationList = visitor(
-    node.declarationList,
-  ) as ts.VariableDeclarationList;
-
+const visitVariableStatement = (
+  node: ts.VariableStatement,
+): ts.VariableStatement => {
   return ts.factory.updateVariableStatement(
     node,
-    modifiers,
-    declarationList,
+    visitModifiers(node.modifiers),
+    visitor(
+      node.declarationList,
+    ) as ts.VariableDeclarationList,
   );
 };
 
