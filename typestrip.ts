@@ -129,6 +129,8 @@ const visitor = (node: ts.Node | undefined) => {
 
     case ts.SyntaxKind.TaggedTemplateExpression:
       return visitTaggedTemplateExpression(node as ts.TaggedTemplateExpression);
+    case ts.SyntaxKind.TemplateExpression:
+      return visitTemplateExpression(node as ts.TemplateExpression);
 
     case ts.SyntaxKind.FunctionDeclaration:
     case ts.SyntaxKind.MethodDeclaration:
@@ -324,12 +326,24 @@ const visitExpressionLike = (
   }
 };
 
-const visitTaggedTemplateExpression = (node: ts.TaggedTemplateExpression) => {
+const visitTaggedTemplateExpression = (
+  node: ts.TaggedTemplateExpression,
+): ts.TaggedTemplateExpression => {
   return ts.factory.updateTaggedTemplateExpression(
     node,
-    node.tag,
+    visitor(node.tag) as ts.Expression,
     undefined, // type arguments
-    node.template,
+    visitTemplateExpression(node.template as ts.TemplateExpression),
+  );
+};
+
+const visitTemplateExpression = (
+  node: ts.TemplateExpression,
+): ts.TemplateExpression => {
+  return ts.factory.updateTemplateExpression(
+    node,
+    node.head,
+    node.templateSpans.map(visitor) as ts.TemplateSpan[],
   );
 };
 
