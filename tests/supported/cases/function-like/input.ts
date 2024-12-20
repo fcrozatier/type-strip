@@ -1,3 +1,11 @@
+const logger = (fn: () => void) => {
+    // Function expression
+    return function ():void {
+        console.log("calling...");
+        fn();
+        console.log("done");
+    }
+}
 // Getters and Setters
 class Person {
   private _name: string;
