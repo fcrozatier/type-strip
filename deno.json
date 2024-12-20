@@ -1,8 +1,8 @@
 {
   "version": "0.0.1",
   "tasks": {
-    "bench": "deno bench --allow-read --allow-env --allow-run bench.ts ",
     "gen:fixtures": "deno run --allow-write fixtures-script.ts",
+    "bench": "deno bench --allow-read --allow-env --allow-run bench.ts ",
     "test": "deno test --allow-read",
     "coverage": "deno test --allow-read --coverage && deno coverage --include='typestrip.ts' --html && open coverage/html/index.html"
   },
