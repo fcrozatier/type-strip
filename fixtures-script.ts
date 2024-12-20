@@ -139,11 +139,13 @@ console.log(dog${i}.bark());
 // Abstract Classes
 abstract class ShapeBase${i} {
   abstract getArea(): number;
-}
+  }
 
 class Circle${i} extends ShapeBase${i} {
-  constructor(radius: number) {
+    radius:number;
+    constructor(radius: number) {
     super();
+    this.radius = radius;
   }
   getArea(): number {
     return Math.PI * this.radius ** 2;
