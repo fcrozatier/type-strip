@@ -62,11 +62,11 @@ The goal of the TC39 [proposal](https://tc39.es/proposal-type-annotations/) is t
 
 ```ts
 class Person {
-    accessor name: string;
+  accessor name: string;
 
-    constructor(name: string) {
-        this.name = name;
-    }
+  constructor(name: string) {
+    this.name = name;
+  }
 }
 ```
 An alternative is to use explicit getters/setters
@@ -157,7 +157,7 @@ type Direction = keyof typeof Direction;
 
 JSX is not intended to be implemented by browsers, but to be used by preprocessors. It's not part of the TC39 proposal.
 
-### Namespace
+### Namespaces
 
 [Namespaces](https://www.typescriptlang.org/docs/handbook/namespaces.html) are a legacy TypeScript-specific construct to provide modularity and encapsulation. They are not supported by the TC39 type annotation proposal. Standard ES modules are the preferred way to address these needs
 
@@ -179,19 +179,19 @@ export function range(start: number, stop: number): number[];
  */
 export function range(start: number, stop: number, step: number): number[];
 export function range(startOrStop: number, stop?: number, step?: number) {
-	let start = startOrStop;
-	if (stop !== undefined && step !== undefined) {
-		return Array.from(
-			{ length: (stop - start) / step },
-			(_, i) => start + i * step,
-		);
-	} else if (stop !== undefined) {
-		return Array.from({ length: stop - start }, (_, i) => start + i);
-	} else {
-		const stop = startOrStop;
-		start = 0;
-		return Array.from({ length: stop - start }, (_, i) => start + i);
-	}
+  let start = startOrStop;
+  if (stop !== undefined && step !== undefined) {
+    return Array.from(
+      { length: (stop - start) / step },
+      (_, i) => start + i * step,
+    );
+  } else if (stop !== undefined) {
+    return Array.from({ length: stop - start }, (_, i) => start + i);
+  } else {
+    const stop = startOrStop;
+    start = 0;
+    return Array.from({ length: stop - start }, (_, i) => start + i);
+  }
 }
 ```
 
@@ -199,9 +199,9 @@ An alternative is to branch depending on the number of arguments or their type
 
 ```ts
 type RangeOptions =
-	| [stop: number]
-	| [start: number, stop: number]
-	| [start: number, stop: number, step: number];
+  | [stop: number]
+  | [start: number, stop: number]
+  | [start: number, stop: number, step: number];
 
 /**
  * Makes an array of numbers between `start` (defaults to 0) and `stop` (excluded) in increments of `step` (defaults to 1)
