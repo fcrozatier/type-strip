@@ -36,7 +36,7 @@ let context: ts.TransformationContext;
 export default (
   input: string,
   options?: TypeStripOptions,
-) => {
+): string => {
   const optionsWitDefaults = { ...defaultOptions, ...options };
   const fileNameSegments = optionsWitDefaults.fileName.split(".");
 
