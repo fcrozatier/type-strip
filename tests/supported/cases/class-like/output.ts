@@ -18,3 +18,14 @@ export class {
     return `Hello, my name is ${this.name}`;
   }
 }
+// Computed properties
+const computed = () => "computed";
+class Person {
+  [computed()];
+  get [computed()]() {
+    return "get";
+  }
+  set [computed()](v) {
+    console.log("set");
+  }
+}

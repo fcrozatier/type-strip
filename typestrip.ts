@@ -444,7 +444,7 @@ const visitFunctionLikeDeclaration = (
         node,
         visitModifiers(node.modifiers),
         node.asteriskToken,
-        node.name,
+        visitor(node.name) as ts.PropertyName,
         undefined, // questionToken
         undefined, // typeParameters
         parameters,
@@ -455,7 +455,7 @@ const visitFunctionLikeDeclaration = (
       return ts.factory.updateGetAccessorDeclaration(
         node,
         visitModifiers(node.modifiers),
-        node.name,
+        visitor(node.name) as ts.PropertyName,
         parameters,
         undefined, // return type
         visitor(node.body) as ts.Block,
@@ -464,7 +464,7 @@ const visitFunctionLikeDeclaration = (
       return ts.factory.updateSetAccessorDeclaration(
         node,
         visitModifiers(node.modifiers),
-        node.name,
+        visitor(node.name) as ts.PropertyName,
         parameters,
         visitor(node.body) as ts.Block,
       );
@@ -570,7 +570,7 @@ const visitPropertyDeclaration = (
   return ts.factory.updatePropertyDeclaration(
     node,
     visitModifiers(node.modifiers),
-    node.name,
+    visitor(node.name) as ts.PropertyName,
     undefined, // questionOrExclamationToken
     undefined, // type
     node.initializer,
