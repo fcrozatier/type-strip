@@ -271,7 +271,7 @@ const modern = (something as string).length; // as-expression
 
 ### Importing types without the `type` keyword
 
-You need to import types explicitly otherwise this will result in a runtime error. To enforce this make sure your `tsconfig.json` contains the `"verbatimModuleSyntax": true` rule.
+You need to import types explicitly to avoid runtime errors. To enforce this make sure your `tsconfig.json` contains the `"verbatimModuleSyntax": true` rule.
 
 ---
 
