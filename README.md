@@ -1,6 +1,9 @@
 # The Type Strip
 
+![blue strip with types](/assets/strip1.png)
+
 *A type-stripper that keeps your code forward compatible with the TC39 Type Annotation Proposal*
+
 
 `TypeStrip` is a lightweight TypeScript type-stripper: it takes TypeScript code as input and outputs JavaScript code with the type annotations removed.
 
@@ -26,7 +29,6 @@ yarn dlx jsr add @fcrozatier/type-strip
 ## Usage
 
 Strip a string of code, files etc.
-
 
 ```ts
 import strip from '@fcrozatier/type-strip';
@@ -266,3 +268,11 @@ const something: unknown = "this is a string";
 const legacy = (<string>something).length; // legacy prefix-style
 const modern = (something as string).length; // as-expression
 ```
+
+### Importing types without the `type` keyword
+
+You need to import types explicitly otherwise this will result in a runtime error. To enforce this make sure your `tsconfig.json` contains the `"verbatimModuleSyntax": true` rule.
+
+---
+
+![Another blue strip with types](/assets/strip2.png)
