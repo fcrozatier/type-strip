@@ -24,7 +24,7 @@ Deno.bench("tsBlankSpace", () => {
 });
 
 Deno.bench("type-strip", { baseline: true }, () => {
-  typeStrip(code, { prettyPrint: true });
+  typeStrip(code);
 });
 
 Deno.bench("esbuild", async () => {
