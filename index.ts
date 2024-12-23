@@ -1,7 +1,10 @@
 import ts from "typescript";
 import { TypeStripError } from "./errors.ts";
 
-type TypeStripOptions = {
+/**
+ * Stripping Options
+ */
+export type TypeStripOptions = {
   /**
    * Whether to strip comments
    */
@@ -34,7 +37,7 @@ let strip: StripItem[] = [];
 export default (
   input: string,
   options?: TypeStripOptions,
-) => {
+): string => {
   const optionsWitDefaults = { ...defaultOptions, ...options };
 
   sourceFile = ts.createSourceFile(

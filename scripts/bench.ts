@@ -1,9 +1,9 @@
 import * as esbuild from "esbuild";
 import tsBlankSpace from "ts-blank-space";
 import ts from "typescript";
-import typeStrip from "./index.ts";
+import typeStrip from "../index.ts";
 
-const path = "fixtures.ts";
+const path = "scripts/fixtures.ts";
 console.log(`%cinput ${path}`, "color: magenta");
 const code = await Deno.readTextFile(path);
 

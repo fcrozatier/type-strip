@@ -1,8 +1,11 @@
 {
-  "version": "0.0.1",
+  "version": "1.0.1",
+  "name": "@fcrozatier/type-strip",
+  "license": "MIT",
+  "exports": "./index.ts",
   "tasks": {
     "gen:fixtures": "deno run --allow-write scripts/fixtures-script.ts",
-    "bench": "deno bench --allow-read --allow-env --allow-run bench.ts ",
+    "bench": "deno bench --allow-read --allow-env --allow-run scripts/bench.ts ",
     "test": "deno test --allow-read",
     "coverage": "deno test --allow-read --coverage && deno coverage --include='index.ts' --html && open coverage/html/index.html"
   },
@@ -14,5 +17,6 @@
     "ts-blank-space": "npm:ts-blank-space@^0.4.4",
     "typescript": "npm:typescript@^5.7.2"
   },
-  "exclude": ["tests/**/input.ts", "tests/**/input.tsx", "tests/**/output.ts"]
+  "exclude": ["tests/**/input.ts", "tests/**/input.tsx", "tests/**/output.ts"],
+  "publish": { "exclude": ["tests", "scripts", ".vscode"] }
 }

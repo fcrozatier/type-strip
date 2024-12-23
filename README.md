@@ -1,10 +1,13 @@
 # The Type Strip
 
-*A type-stripper keeping your code forward compatible with the TC39 Type Annotation Proposal*
+![blue strip with types](/assets/strip1.png)
+
+*A type-stripper that keeps your code forward compatible with the TC39 Type Annotation Proposal*
+
 
 `TypeStrip` is a lightweight TypeScript type-stripper: it takes TypeScript code as input and outputs JavaScript code with the type annotations removed.
 
-The main goal of this project is to also ensure **forward compatibility** of your code with the TC39 [Type Annotation Proposal](https://tc39.es/proposal-type-annotations/). This means that when the proposal reaches stage 4, you'll be able to transition your code seamlessly by just changing the file extensions to `.js`, and you won't need a transpilation step anymore.
+One of the goals of this project is to also ensure **forward compatibility** of your code with the TC39 [Type Annotation Proposal](https://tc39.es/proposal-type-annotations/). This means that when the proposal reaches stage 4, you'll be able to seamlessly change your file extensions to `.js`, and won't need a transpilation step anymore.
 
 ## Features
 
@@ -12,7 +15,46 @@ The main goal of this project is to also ensure **forward compatibility** of you
 - Throws an error when an [unsupported syntax](#unsupported-syntaxes) is detected.
 - Performs automatic semi-column insertion.
 
-<h2 id="unsupported-syntaxes">Unsupported syntaxes</h2>
+## Installation
+
+Depending on your runtime / package-manager:
+
+```sh
+deno add jsr:@fcrozatier/type-strip
+npx jsr add @fcrozatier/type-strip
+pnpm dlx jsr add @fcrozatier/type-strip
+yarn dlx jsr add @fcrozatier/type-strip
+```
+
+## Usage
+
+Strip a string of code, files etc.
+
+```ts
+import strip from '@fcrozatier/type-strip';
+
+console.log(strip("let num: number = 0;", {/* options */}));
+//-> let num = 0;
+```
+
+### Options
+
+<dl>
+  <dt><code>removeComments?: boolean</code></dt>
+  <dd>Whether to strip comments</dd>
+  <dd><em>Default</em> <code>false</code></dd>
+
+  <dt><code>prettyPrint?: boolean</code></dt>
+  <dd>A simple postprocessing step to decode Unicode escape sequences and fix output indentation to 2 spaces. If you only use ASCII characters in your code (no accents, emojis etc) or if you don't care about these characters remaining human readable in the source, you can keep this option to <code>false</code>
+  </dd>
+  <dd><em>Default</em> <code>false</code></dd>
+
+  <dt><code>fileName?: string</code></dt>
+  <dd>The file name used internally. Only .ts files are accepted</dd>
+  <dd><em>Default</em> <code>"input.ts"</code></dd>
+</dl>
+
+## Unsupported syntaxes
 
 The goal of the TC39 [proposal](https://tc39.es/proposal-type-annotations/) is to add type annotations without modifying the semantics of the language. This means that TypeScript-only features requiring a transpilation step are not supported.
 
@@ -22,11 +64,11 @@ The goal of the TC39 [proposal](https://tc39.es/proposal-type-annotations/) is t
 
 ```ts
 class Person {
-    accessor name: string;
+  accessor name: string;
 
-    constructor(name: string) {
-        this.name = name;
-    }
+  constructor(name: string) {
+    this.name = name;
+  }
 }
 ```
 An alternative is to use explicit getters/setters
@@ -117,7 +159,7 @@ type Direction = keyof typeof Direction;
 
 JSX is not intended to be implemented by browsers, but to be used by preprocessors. It's not part of the TC39 proposal.
 
-### Namespace
+### Namespaces
 
 [Namespaces](https://www.typescriptlang.org/docs/handbook/namespaces.html) are a legacy TypeScript-specific construct to provide modularity and encapsulation. They are not supported by the TC39 type annotation proposal. Standard ES modules are the preferred way to address these needs
 
@@ -139,19 +181,19 @@ export function range(start: number, stop: number): number[];
  */
 export function range(start: number, stop: number, step: number): number[];
 export function range(startOrStop: number, stop?: number, step?: number) {
-	let start = startOrStop;
-	if (stop !== undefined && step !== undefined) {
-		return Array.from(
-			{ length: (stop - start) / step },
-			(_, i) => start + i * step,
-		);
-	} else if (stop !== undefined) {
-		return Array.from({ length: stop - start }, (_, i) => start + i);
-	} else {
-		const stop = startOrStop;
-		start = 0;
-		return Array.from({ length: stop - start }, (_, i) => start + i);
-	}
+  let start = startOrStop;
+  if (stop !== undefined && step !== undefined) {
+    return Array.from(
+      { length: (stop - start) / step },
+      (_, i) => start + i * step,
+    );
+  } else if (stop !== undefined) {
+    return Array.from({ length: stop - start }, (_, i) => start + i);
+  } else {
+    const stop = startOrStop;
+    start = 0;
+    return Array.from({ length: stop - start }, (_, i) => start + i);
+  }
 }
 ```
 
@@ -159,9 +201,9 @@ An alternative is to branch depending on the number of arguments or their type
 
 ```ts
 type RangeOptions =
-	| [stop: number]
-	| [start: number, stop: number]
-	| [start: number, stop: number, step: number];
+  | [stop: number]
+  | [start: number, stop: number]
+  | [start: number, stop: number, step: number];
 
 /**
  * Makes an array of numbers between `start` (defaults to 0) and `stop` (excluded) in increments of `step` (defaults to 1)
@@ -226,3 +268,11 @@ const something: unknown = "this is a string";
 const legacy = (<string>something).length; // legacy prefix-style
 const modern = (something as string).length; // as-expression
 ```
+
+### Importing types without the `type` keyword
+
+You need to import types explicitly to avoid runtime errors. To enforce this make sure your `tsconfig.json` contains the `"verbatimModuleSyntax": true` rule.
+
+---
+
+![Another blue strip with types](/assets/strip2.png)
