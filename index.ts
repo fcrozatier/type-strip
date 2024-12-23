@@ -83,13 +83,15 @@ export default (
 };
 
 const walk = (node: ts.Node, visit: (node: ts.Node) => void): void => {
-  if (!skip.has(node)) {
-    visit(node);
-  }
+  visit(node);
 
   // the skip-list can change as a side-effect of visit
   if (!skip.has(node)) {
-    node.forEachChild((child) => walk(child, visit));
+    node.forEachChild((child) => {
+      if (!skip.has(child)) {
+        walk(child, visit);
+      }
+    });
   }
 };
 
@@ -149,9 +151,6 @@ const visitor = (node: ts.Node | undefined) => {
 
     case ts.SyntaxKind.PropertyDeclaration:
       return visitPropertyDeclaration(node as ts.PropertyDeclaration);
-
-    case ts.SyntaxKind.HeritageClause:
-      return visitHeritageClause(node as ts.HeritageClause);
 
     case ts.SyntaxKind.ClassDeclaration:
     case ts.SyntaxKind.ClassExpression:
@@ -387,10 +386,16 @@ const visitClassLike = (
     visitModifiers(node.modifiers);
   }
 
+  if (node.heritageClauses) {
+    for (const clause of node.heritageClauses) {
+      visitHeritageClause(clause);
+    }
+  }
+
   if (node.typeParameters) {
     strip.push({
       start: node.typeParameters.pos - 1,
-      end: node.typeParameters.end ,
+      end: node.typeParameters.end,
       trailing: /,?\s*\>/,
     });
     node.typeParameters.forEach((t) => skip.add(t));
