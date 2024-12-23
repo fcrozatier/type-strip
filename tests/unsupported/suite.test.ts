@@ -44,7 +44,7 @@ for await (
 
     Deno.test(`handles ${testCase}`, () => {
       assertThrows(
-        () => strip(inputCode, { fileName: inputEntry.name }),
+        () => strip(inputCode),
         TypeStripError,
         errorMessage,
       );
