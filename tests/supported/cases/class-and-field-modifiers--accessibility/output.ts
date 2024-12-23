@@ -1,13 +1,11 @@
 // Accessibility modifiers
-class Animal {
-  name;
+class Animal { name;
+
   constructor(name) {
     this.name = name;
-  }
-  speak() {
+  } speak() {
     return `${this.name} makes a noise.`;
-  }
-  move() {
+  } move() {
     console.log(`${this.name} is moving.`);
   }
 }

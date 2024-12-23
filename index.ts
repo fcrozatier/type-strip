@@ -10,23 +10,21 @@ type TypeStripOptions = {
    * The file name used internally. Only .ts files are accepted
    */
   fileName?: string;
-  /**
-   * A simple postprocessing step to decode Unicode escape sequences and fix output indentation to 2 spaces.
-   * If you only use ASCII characters in your code (no accents, emojis etc) or if you don't care about these characters remaining human readable in the source, you can keep this option to `false`
-   */
-  prettyPrint?: boolean;
 };
+
+type StripItem = { start: number; end: number; trailing?: RegExp };
 
 const defaultOptions: Required<TypeStripOptions> = {
   removeComments: false,
   fileName: "input.ts",
-  prettyPrint: false,
 };
 
 let sourceFile: ts.SourceFile;
-let printer: ts.Printer;
-// printer.printNode(ts.EmitHint.Unspecified, node, sourceFile)
-let context: ts.TransformationContext;
+let sourceCode: string;
+let outputCode: string;
+
+const skip = new Set<ts.Node>();
+let strip: StripItem[] = [];
 
 /**
  * Takes a TypeScript input source file and outputs JavaScript with types stripped
@@ -38,18 +36,7 @@ export default (
   options?: TypeStripOptions,
 ) => {
   const optionsWitDefaults = { ...defaultOptions, ...options };
-  const fileNameSegments = optionsWitDefaults.fileName.split(".");
 
-  if (fileNameSegments?.length < 2) {
-    throw new TypeStripError("filename");
-  }
-  const extension = fileNameSegments[fileNameSegments.length - 1];
-  if (extension === "jsx" || extension === "tsx") {
-    throw new TypeStripError("jsx");
-  }
-  if (extension !== "ts") {
-    throw new TypeStripError("extension");
-  }
   sourceFile = ts.createSourceFile(
     optionsWitDefaults.fileName,
     input,
@@ -58,48 +45,53 @@ export default (
     ts.ScriptKind.TS,
   );
 
-  return stripTypes(sourceFile, optionsWitDefaults);
-};
+  sourceCode = sourceFile.getFullText();
+  outputCode = "";
 
-const stripTypes = (
-  sourceFile: ts.SourceFile,
-  { removeComments, prettyPrint }: TypeStripOptions,
-) => {
-  printer = ts.createPrinter({
-    omitTrailingSemicolon: false,
-    removeComments,
-  });
+  try {
+    walk(sourceFile, visitor);
 
-  // @ts-ignore Actually a transformer can return undefined
-  const result = ts.transform(sourceFile, [transformer]);
-  const transformed = result.transformed[0];
-  const output = printer.printFile(transformed as ts.SourceFile);
-  result.dispose();
-  return prettyPrint ? pretty(output) : output;
-};
+    let index = 0;
+    const sortedEdits = strip.toSorted((a, b) => a.start - b.start);
 
-/**
- * Decodes Unicode escape sequences, and fix the default indentation used by the printer to be 2 spaces instead of 4
- */
-const pretty = (input: string) => {
-  // @ts-ignore the replacer signature is wild
-  return input.replace(/\\u([\dA-F]{4})|( {4})/gi, (_, hex, white_space) => {
-    if (hex) {
-      return String.fromCharCode(parseInt(hex, 16));
+    for (const { start, end, trailing } of sortedEdits) {
+      if (start !== undefined && end !== undefined) {
+        if (index < start) {
+          outputCode += sourceCode.slice(index, start);
+          index = end;
+        }
+        if (index < end) {
+          index = end;
+        }
+      }
+      if (trailing) {
+        const match = sourceCode.slice(index).match(trailing);
+        if (match) {
+          index += match[0].length;
+        }
+      }
     }
-    if (white_space) {
-      return "  ";
+    if (index < sourceCode.length) {
+      outputCode += sourceCode.slice(index);
     }
-  });
+
+    return outputCode;
+  } finally {
+    strip = [];
+    skip.clear();
+  }
 };
 
-const transformer =
-  <T extends ts.Node>(transformationContext: ts.TransformationContext) =>
-  (rootNode: T) => {
-    context = transformationContext;
+const walk = (node: ts.Node, visit: (node: ts.Node) => void): void => {
+  if (!skip.has(node)) {
+    visit(node);
+  }
 
-    return ts.visitNode(rootNode, visitor);
-  };
+  // the skip-list can change as a side-effect of visit
+  if (!skip.has(node)) {
+    node.forEachChild((child) => walk(child, visit));
+  }
+};
 
 const visitor = (node: ts.Node | undefined) => {
   switch (node?.kind) {
@@ -110,7 +102,10 @@ const visitor = (node: ts.Node | undefined) => {
 
     case ts.SyntaxKind.InterfaceDeclaration:
     case ts.SyntaxKind.TypeAliasDeclaration:
-      return undefined;
+    case ts.SyntaxKind.IndexSignature:
+      strip.push({ start: node.pos, end: node.end });
+      skip.add(node);
+      break;
 
     case ts.SyntaxKind.VariableStatement:
       return visitVariableStatement(node as ts.VariableStatement);
@@ -124,15 +119,20 @@ const visitor = (node: ts.Node | undefined) => {
     case ts.SyntaxKind.NonNullExpression:
     case ts.SyntaxKind.AsExpression:
     case ts.SyntaxKind.SatisfiesExpression:
-      return visitor((node as ts.NonNullExpression).expression);
+      strip.push({
+        start: (node as ts.AsExpression).expression.end,
+        end: node.end,
+      });
+      break;
     case ts.SyntaxKind.CallExpression:
       return visitCallExpression(node as ts.CallExpression);
     case ts.SyntaxKind.NewExpression:
       return visitNewExpression(node as ts.NewExpression);
     case ts.SyntaxKind.TaggedTemplateExpression:
       return visitTaggedTemplateExpression(node as ts.TaggedTemplateExpression);
-    case ts.SyntaxKind.TemplateExpression:
-      return visitTemplateExpression(node as ts.TemplateExpression);
+
+    case ts.SyntaxKind.Parameter:
+      return visitParameter(node as ts.ParameterDeclaration);
 
     case ts.SyntaxKind.FunctionDeclaration:
     case ts.SyntaxKind.MethodDeclaration:
@@ -145,6 +145,9 @@ const visitor = (node: ts.Node | undefined) => {
 
     case ts.SyntaxKind.PropertyDeclaration:
       return visitPropertyDeclaration(node as ts.PropertyDeclaration);
+
+    case ts.SyntaxKind.HeritageClause:
+      return visitHeritageClause(node as ts.HeritageClause);
 
     case ts.SyntaxKind.ClassDeclaration:
     case ts.SyntaxKind.ClassExpression:
@@ -160,8 +163,6 @@ const visitor = (node: ts.Node | undefined) => {
     case ts.SyntaxKind.TypeAssertionExpression:
       throw new TypeStripError("type-assertion-expression");
   }
-
-  return ts.visitEachChild(node, visitor, context);
 };
 
 /**
@@ -172,113 +173,76 @@ const visitor = (node: ts.Node | undefined) => {
  * export { type SomeLocalType };
  * export { thing, type SomeLocalType };
  */
-const visitExportDeclaration = (
-  node: ts.ExportDeclaration,
-): ts.ExportDeclaration | undefined => {
+const visitExportDeclaration = (node: ts.ExportDeclaration) => {
   if (node.isTypeOnly) {
-    return undefined;
+    strip.push({ start: node.pos, end: node.end });
+    skip.add(node);
+  } else if (node.exportClause && ts.isNamedExports(node.exportClause)) {
+    const exportsToSkip = node.exportClause.elements.map(visitExportSpecifier)
+      .filter(isNotUndefined);
+    if (exportsToSkip?.length === node.exportClause.elements.length) {
+      // skip the whole import declaration
+      strip.push({ start: node.pos, end: node.end });
+      skip.add(node);
+    } else {
+      for (const skipExport of exportsToSkip) {
+        strip.push(skipExport);
+        skip.add(node);
+      }
+    }
   }
-  let exportClause = node.exportClause;
+};
 
-  if (exportClause && ts.isNamedExports(exportClause)) {
-    exportClause = visitNamedExports(exportClause);
+const visitExportSpecifier = (
+  node: ts.ExportSpecifier,
+): StripItem | undefined => {
+  if (node.isTypeOnly) {
+    return { start: node.pos, end: node.end, trailing: /,/ };
   }
-
-  if (!exportClause) return undefined;
-
-  return ts.factory.updateExportDeclaration(
-    node,
-    node.modifiers,
-    false, // isTypeOnly
-    exportClause,
-    node.moduleSpecifier,
-    node.attributes,
-  );
 };
 
-const visitNamedExports = (node: ts.NamedExports) => {
-  const elements = node.elements.map(visitExportSpecifier).filter(
-    isNotUndefined,
-  );
-
-  if (elements.length === 0) return undefined;
-
-  return ts.factory.updateNamedExports(node, elements as ts.ExportSpecifier[]);
-};
-
-const visitExportSpecifier = (node: ts.ExportSpecifier) => {
-  if (node.isTypeOnly) return undefined;
-
-  return node;
-};
-
-/**
- * Handle import declaration
- *
- * @example
- * import type { Person } from "module";
- */
-const visitImportDeclaration = (
-  node: ts.ImportDeclaration,
-): ts.ImportDeclaration | undefined => {
-  const importClause = visitImportClause(node.importClause);
-
-  if (!importClause) return undefined;
-
-  return ts.factory.updateImportDeclaration(
-    node,
-    node.modifiers,
-    importClause,
-    node.moduleSpecifier,
-    node.attributes,
-  );
-};
-
-const visitImportClause = (node: ts.ImportClause | undefined) => {
-  if (node?.isTypeOnly) return undefined;
-
-  let namedBindings = node?.namedBindings;
-
-  if (namedBindings && ts.isNamedImports(namedBindings)) {
-    namedBindings = visitNamedImports(namedBindings);
+const visitImportDeclaration = (node: ts.ImportDeclaration) => {
+  if (node.importClause?.isTypeOnly) {
+    strip.push({ start: node.pos, end: node.end });
+    skip.add(node);
+  } else if (node.importClause) {
+    const skipDeclaration = visitImportClause(node.importClause);
+    if (skipDeclaration) {
+      strip.push({ start: node.pos, end: node.end });
+      skip.add(node);
+    }
   }
-
-  if (!namedBindings) return undefined;
-
-  return ts.factory.updateImportClause(
-    node as ts.ImportClause,
-    false,
-    node?.name,
-    namedBindings,
-  );
 };
 
-const visitNamedImports = (node: ts.NamedImports) => {
-  const elements = node.elements.map(visitImportSpecifier).filter(
-    isNotUndefined,
-  );
-
-  if (elements.length === 0) return undefined;
-
-  return ts.factory.updateNamedImports(node, elements as ts.ImportSpecifier[]);
+const visitImportClause = (node: ts.ImportClause) => {
+  if (node?.namedBindings && ts.isNamedImports(node.namedBindings)) {
+    const importsToSkip = node.namedBindings.elements.map(visitImportSpecifier)
+      .filter(isNotUndefined);
+    if (importsToSkip?.length === node.namedBindings?.elements.length) {
+      return true; // skip the whole import declaration
+    } else {
+      for (const skipImport of importsToSkip) {
+        strip.push(skipImport);
+        skip.add(node);
+      }
+    }
+  }
 };
 
-const visitImportSpecifier = (node: ts.ImportSpecifier) => {
-  if (node.isTypeOnly) return undefined;
-
-  return node;
+const visitImportSpecifier = (
+  node: ts.ImportSpecifier,
+): StripItem | undefined => {
+  if (node.isTypeOnly) {
+    return { start: node.pos, end: node.end, trailing: /,/ };
+  }
 };
 
-const visitVariableStatement = (
-  node: ts.VariableStatement,
-): ts.VariableStatement => {
-  return ts.factory.updateVariableStatement(
-    node,
-    visitModifiers(node.modifiers),
-    visitor(
-      node.declarationList,
-    ) as ts.VariableDeclarationList,
-  );
+const visitVariableStatement = (node: ts.VariableStatement) => {
+  if (
+    node.modifiers && hasModifier(node.modifiers, ts.SyntaxKind.DeclareKeyword)
+  ) {
+    throw new TypeStripError("declare");
+  }
 };
 
 /**
@@ -286,45 +250,43 @@ const visitVariableStatement = (
  * @example
  * let x: string = "foo";
  */
-const visitVariableDeclaration = (node: ts.VariableDeclaration): ts.Node => {
-  return ts.factory.updateVariableDeclaration(
-    node,
-    visitor(node.name) as ts.BindingName,
-    undefined, // exclamationToken
-    undefined, // type
-    visitor(node.initializer) as ts.Expression,
-  );
+const visitVariableDeclaration = (node: ts.VariableDeclaration) => {
+  if (node.exclamationToken) {
+    strip.push({
+      start: node.exclamationToken.pos,
+      end: node.exclamationToken.end,
+    });
+  }
+
+  if (node.type) {
+    strip.push({
+      start: node.type.pos - 1,
+      end: node.type.end,
+    });
+    skip.add(node.type);
+  }
 };
 
 const visitExpressionWithTypeArguments = (
   node: ts.ExpressionWithTypeArguments,
-): ts.Expression => {
-  return ts.factory.updateExpressionWithTypeArguments(
-    node,
-    visitor(node.expression) as ts.Expression,
-    undefined, // typeArguments
-  );
+) => {
+  if (node.typeArguments) {
+    strip.push({
+      start: node.typeArguments.pos - 1,
+      end: node.typeArguments.end + 1 ,
+    });
+    node.typeArguments.forEach((t) => skip.add(t));
+  }
 };
 
-const visitTaggedTemplateExpression = (
-  node: ts.TaggedTemplateExpression,
-): ts.TaggedTemplateExpression => {
-  return ts.factory.updateTaggedTemplateExpression(
-    node,
-    visitor(node.tag) as ts.Expression,
-    undefined, // type arguments
-    visitTemplateExpression(node.template as ts.TemplateExpression),
-  );
-};
-
-const visitTemplateExpression = (
-  node: ts.TemplateExpression,
-): ts.TemplateExpression => {
-  return ts.factory.updateTemplateExpression(
-    node,
-    node.head,
-    node.templateSpans.map(visitor) as ts.TemplateSpan[],
-  );
+const visitTaggedTemplateExpression = (node: ts.TaggedTemplateExpression) => {
+  if (node.typeArguments) {
+    strip.push({
+      start: node.typeArguments.pos - 1,
+      end: node.typeArguments.end + 1,
+    });
+    node.typeArguments.forEach((t) => skip.add(t));
+  }
 };
 
 /**
@@ -334,9 +296,7 @@ const visitTemplateExpression = (
       return x === y;
     }
  */
-const visitParameter = (
-  node: ts.ParameterDeclaration,
-): ts.ParameterDeclaration | undefined => {
+const visitParameter = (node: ts.ParameterDeclaration) => {
   if (
     node.modifiers &&
     hasModifier(node.modifiers, [
@@ -351,18 +311,16 @@ const visitParameter = (
   }
 
   if (ts.isIdentifier(node.name) && node.name.escapedText === "this") {
-    return undefined;
+    strip.push({ start: node.pos, end: node.end, trailing: /,\s*/ });
+    skip.add(node.name);
   }
-
-  return ts.factory.updateParameterDeclaration(
-    node,
-    node.modifiers,
-    node.dotDotDotToken,
-    visitor(node.name) as ts.BindingName,
-    undefined, // remove the question token
-    undefined, // remove the type
-    visitor(node.initializer) as ts.Expression,
-  );
+  if (node.questionToken) {
+    strip.push({ start: node.questionToken.pos, end: node.questionToken.end });
+  }
+  if (node.type) {
+    strip.push({ start: node.type.pos - 1, end: node.type.end });
+    skip.add(node.type);
+  }
 };
 
 /**
@@ -374,105 +332,47 @@ const visitParameter = (
  */
 const visitFunctionLikeDeclaration = (
   node: ts.FunctionLikeDeclaration,
-): ts.FunctionLikeDeclaration | undefined => {
-  const parameters = node.parameters.map(visitParameter).filter(isNotUndefined);
-
-  switch (node.kind) {
-    case ts.SyntaxKind.FunctionDeclaration: {
-      // Check if it has a declare modifier first
-      const modifiers = visitModifiers(node.modifiers);
-      if (!node.body) throw new TypeStripError("overload");
-
-      return ts.factory.updateFunctionDeclaration(
-        node,
-        modifiers,
-        node.asteriskToken,
-        node.name,
-        undefined, // typeParameters
-        parameters,
-        undefined, // return type
-        visitor(node.body) as ts.Block,
-      );
+) => {
+  // Check if it has a declare modifier first
+  if (node.modifiers) {
+    visitModifiers(node.modifiers);
+    if(ts.isMethodDeclaration(node) && hasModifier(node.modifiers, ts.SyntaxKind.AbstractKeyword)){
+      strip.push({
+        start: node.pos,
+        end: node.end
+      })
+      skip.add(node)
     }
-    case ts.SyntaxKind.FunctionExpression:
-      return ts.factory.updateFunctionExpression(
-        node,
-        visitModifiers(node.modifiers) as ts.Modifier[] | undefined,
-        node.asteriskToken,
-        node.name,
-        undefined, // typeParameters
-        parameters,
-        undefined, // return type
-        visitor(node.body) as ts.Block,
-      );
-    case ts.SyntaxKind.ArrowFunction:
-      return ts.factory.updateArrowFunction(
-        node,
-        visitModifiers(node.modifiers) as ts.Modifier[] | undefined,
-        undefined, // typeParameters
-        parameters,
-        undefined, // return type
-        node.equalsGreaterThanToken,
-        visitor(node.body) as ts.Block,
-      );
-    case ts.SyntaxKind.Constructor:
-      return ts.factory.updateConstructorDeclaration(
-        node,
-        visitModifiers(node.modifiers),
-        parameters,
-        visitor(node.body) as ts.Block,
-      );
-    case ts.SyntaxKind.MethodDeclaration:
-      // Strip abstract methods
-      if (
-        node.modifiers &&
-        hasModifier(
-          node.modifiers,
-          ts.SyntaxKind.AbstractKeyword,
-        )
-      ) {
-        return undefined;
-      }
-      if (!node.body) throw new TypeStripError("overload");
-
-      return ts.factory.updateMethodDeclaration(
-        node,
-        visitModifiers(node.modifiers),
-        node.asteriskToken,
-        visitor(node.name) as ts.PropertyName,
-        undefined, // questionToken
-        undefined, // typeParameters
-        parameters,
-        undefined, // return type
-        visitor(node.body) as ts.Block,
-      );
-    case ts.SyntaxKind.GetAccessor:
-      return ts.factory.updateGetAccessorDeclaration(
-        node,
-        visitModifiers(node.modifiers),
-        visitor(node.name) as ts.PropertyName,
-        parameters,
-        undefined, // return type
-        visitor(node.body) as ts.Block,
-      );
-    case ts.SyntaxKind.SetAccessor:
-      return ts.factory.updateSetAccessorDeclaration(
-        node,
-        visitModifiers(node.modifiers),
-        visitor(node.name) as ts.PropertyName,
-        parameters,
-        visitor(node.body) as ts.Block,
-      );
+  }
+  if (
+    (!node?.modifiers ||
+      !hasModifier(node.modifiers, ts.SyntaxKind.AbstractKeyword)) && !node.body
+  ) throw new TypeStripError("overload");
+  if (node.typeParameters) {
+    strip.push({
+      start: node.typeParameters.pos - 1, // <
+      end: node.typeParameters.end,
+      trailing: /,?\s*\>/
+    });
+    node.typeParameters.forEach((t) => skip.add(t));
+  }
+  if (node.questionToken) {
+    strip.push({ start: node.questionToken.pos, end: node.questionToken.end });
+  }
+  if (node.type) {
+    strip.push({ start: node.type.pos - 1, end: node.type.end });
+    skip.add(node.type);
   }
 };
 
-const visitCallExpression = (node: ts.CallExpression): ts.CallExpression => {
-  return ts.factory.updateCallExpression(
-    node,
-    visitor(node.expression) as ts.Expression,
-    undefined, // typeArguments
-    node.arguments.map(visitor).filter(isNotUndefined) as ts.Expression[],
-  );
+const visitCallExpression = (node: ts.CallExpression) => {
+  if (node.typeArguments) {
+    strip.push({
+      start: node.typeArguments.pos - 1,
+      end: node.typeArguments.end + 1,
+    });
+    node.typeArguments.forEach((t) => skip.add(t));
+  }
 };
 
 /**
@@ -487,71 +387,51 @@ const visitCallExpression = (node: ts.CallExpression): ts.CallExpression => {
  */
 const visitClassLike = (
   node: ts.ClassLikeDeclaration,
-): ts.ClassLikeDeclaration | undefined => {
-  // Check if it has a declare modifier first
-  const modifiers = visitModifiers(node.modifiers);
-  const members = node.members.map(visitor).filter((
-    m,
-  ) => (m && !ts.isIndexSignatureDeclaration(m)));
-  const heritageClauses = visitHeritageClauses(node.heritageClauses);
-
-  switch (node.kind) {
-    case ts.SyntaxKind.ClassDeclaration:
-      return ts.factory.updateClassDeclaration(
-        node,
-        modifiers,
-        node.name,
-        undefined, // typeParameters
-        heritageClauses,
-        members as unknown as ts.NodeArray<ts.ClassElement>,
-      );
-    case ts.SyntaxKind.ClassExpression:
-      return ts.factory.updateClassExpression(
-        node,
-        modifiers,
-        node.name,
-        undefined, // typeParameters
-        heritageClauses,
-        members as unknown as ts.NodeArray<ts.ClassElement>,
-      );
-  }
-};
-
-const visitHeritageClauses = (
-  node: ts.NodeArray<ts.HeritageClause> | undefined,
 ) => {
-  return node?.filter((heritageClause) =>
-    heritageClause.token !== ts.SyntaxKind.ImplementsKeyword
-  ).map(visitHeritageClause);
+  // Check if it has a declare modifier first
+  if (node.modifiers) {
+    visitModifiers(node.modifiers);
+  }
+
+  if (node.typeParameters) {
+    strip.push({
+      start: node.typeParameters.pos - 1,
+      end: node.typeParameters.end + 1,
+    });
+    node.typeParameters.forEach((t) => skip.add(t));
+  }
 };
 
 const visitHeritageClause = (node: ts.HeritageClause) => {
-  const types = node.types.map(visitor).filter(
-    isNotUndefined,
-  ) as ts.ExpressionWithTypeArguments[];
-
-  return ts.factory.updateHeritageClause(node, types);
+  if (node.token === ts.SyntaxKind.ImplementsKeyword) {
+    strip.push({ start: node.pos, end: node.end });
+    skip.add(node);
+  }
 };
 
-const visitModifiers = (node: ts.NodeArray<ts.ModifierLike> | undefined) => {
-  if (node && hasModifier(node, ts.SyntaxKind.DeclareKeyword)) {
+const visitModifiers = (node: ts.NodeArray<ts.ModifierLike>) => {
+  if (hasModifier(node, ts.SyntaxKind.DeclareKeyword)) {
     throw new TypeStripError("declare");
   }
-  if (node && hasModifier(node, ts.SyntaxKind.AccessorKeyword)) {
+  if (hasModifier(node, ts.SyntaxKind.AccessorKeyword)) {
     throw new TypeStripError("accessor-keyword");
   }
-  if (node && hasModifier(node, ts.SyntaxKind.Decorator)) {
+  if (hasModifier(node, ts.SyntaxKind.Decorator)) {
     throw new TypeStripError("decorator");
   }
 
-  return node?.filter((modifier) => {
-    return modifier.kind !== ts.SyntaxKind.PublicKeyword &&
-      modifier.kind !== ts.SyntaxKind.PrivateKeyword &&
-      modifier.kind !== ts.SyntaxKind.ProtectedKeyword &&
-      modifier.kind !== ts.SyntaxKind.ReadonlyKeyword &&
-      modifier.kind !== ts.SyntaxKind.OverrideKeyword &&
-      modifier.kind !== ts.SyntaxKind.AbstractKeyword;
-  });
+  for (const modifier of node) {
+    if (
+      modifier.kind === ts.SyntaxKind.PublicKeyword ||
+      modifier.kind === ts.SyntaxKind.PrivateKeyword ||
+      modifier.kind === ts.SyntaxKind.ProtectedKeyword ||
+      modifier.kind === ts.SyntaxKind.ReadonlyKeyword ||
+      modifier.kind === ts.SyntaxKind.OverrideKeyword ||
+      modifier.kind === ts.SyntaxKind.AbstractKeyword
+    ) {
+      strip.push({ start: modifier.pos, end: modifier.end });
+    }
+  }
 };
 
 /**
@@ -562,17 +442,23 @@ const visitModifiers = (node: ts.NodeArray<ts.ModifierLike> | undefined) => {
  *   name: string;
  * }
  */
-const visitPropertyDeclaration = (
-  node: ts.PropertyDeclaration,
-): ts.PropertyDeclaration => {
-  return ts.factory.updatePropertyDeclaration(
-    node,
-    visitModifiers(node.modifiers),
-    visitor(node.name) as ts.PropertyName,
-    undefined, // questionOrExclamationToken
-    undefined, // type
-    visitor(node.initializer) as ts.Expression,
-  );
+const visitPropertyDeclaration = (node: ts.PropertyDeclaration) => {
+  if (node.modifiers) {
+    visitModifiers(node.modifiers);
+  }
+  if (node.questionToken) {
+    strip.push({ start: node.questionToken.pos, end: node.questionToken.end });
+  }
+  if (node.exclamationToken) {
+    strip.push({
+      start: node.exclamationToken.pos,
+      end: node.exclamationToken.end,
+    });
+  }
+  if (node.type) {
+    strip.push({ start: node.type.pos - 1, end: node.type.end });
+    skip.add(node.type);
+  }
 };
 
 /**
@@ -583,13 +469,14 @@ const visitPropertyDeclaration = (
  */
 const visitNewExpression = (
   node: ts.NewExpression,
-): ts.NewExpression => {
-  return ts.factory.updateNewExpression(
-    node,
-    visitor(node.expression) as ts.Expression,
-    undefined, // typeArguments
-    node.arguments?.map(visitor).filter(isNotUndefined) as ts.Expression[],
-  );
+) => {
+  if (node.typeArguments) {
+    strip.push({
+      start: node.typeArguments.pos - 1,
+      end: node.typeArguments.end + 1,
+    });
+    node.typeArguments.forEach((t) => skip.add(t));
+  }
 };
 
 /**

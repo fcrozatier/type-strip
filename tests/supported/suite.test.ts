@@ -40,7 +40,7 @@ for await (
     const inputCode = await Deno.readTextFile(inputEntry.path);
     const outputCode = await Deno.readTextFile(outputEntry.path);
 
-    const stripped = TypeStrip(inputCode, { prettyPrint: true });
+    const stripped = TypeStrip(inputCode);
 
     Deno.test(`handles ${testCase}`, () => {
       assertEquals(stripped, outputCode);

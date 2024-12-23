@@ -1,2 +1,3 @@
+
 // Mixed
-export { thing };
+export { thing, };

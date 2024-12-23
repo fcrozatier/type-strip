@@ -9,7 +9,6 @@ const mixedTuple = [42, "tuple", true];
 const { c: count = 0, p: price = computed() } = data;
 try {
   throw new Error("Something went wrong!");
-}
-catch (error) {
+} catch (error) {
   console.error(error);
 }

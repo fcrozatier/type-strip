@@ -1,3 +1,0 @@
-// Abstract Classes
-class ShapeBase {
-}

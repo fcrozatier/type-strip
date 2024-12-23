@@ -8,18 +8,18 @@ interface Savable {
 
 class Document implements Printable {
   print() {
-      console.log("Printing document...");
+    console.log("Printing document...");
   }
 }
 
 // Implementing multiple interfaces
 class File implements Printable, Savable {
   print() {
-      console.log("Printing file...");
+    console.log("Printing file...");
   }
 
   save() {
-      console.log("Saving file...");
+    console.log("Saving file...");
   }
 }
 
@@ -29,12 +29,13 @@ interface Movable {
 
 class Vehicle {
   startEngine() {
-      console.log("Engine started.");
+    console.log("Engine started.");
   }
 }
+
 // Implementing and extending
 class Car extends Vehicle implements Movable {
   move() {
-      console.log("Car is moving...");
+    console.log("Car is moving...");
   }
 }
