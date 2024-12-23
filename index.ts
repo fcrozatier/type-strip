@@ -47,7 +47,9 @@ export default (
   outputCode = "";
 
   try {
-    walk(sourceFile, visitor);
+    for (const statement of sourceFile.statements) {
+      walk(statement, topLevelVisitor);
+    }
 
     let index = 0;
     const sortedEdits = strip.toSorted((a, b) => a.start - b.start);
@@ -91,13 +93,19 @@ const walk = (node: ts.Node, visit: (node: ts.Node) => void): void => {
   }
 };
 
-const visitor = (node: ts.Node | undefined) => {
+const topLevelVisitor = (node: ts.Node) => {
   switch (node?.kind) {
     case ts.SyntaxKind.ExportDeclaration:
       return visitExportDeclaration(node as ts.ExportDeclaration);
     case ts.SyntaxKind.ImportDeclaration:
       return visitImportDeclaration(node as ts.ImportDeclaration);
+    default:
+      return visitor(node);
+  }
+};
 
+const visitor = (node: ts.Node | undefined) => {
+  switch (node?.kind) {
     case ts.SyntaxKind.InterfaceDeclaration:
     case ts.SyntaxKind.TypeAliasDeclaration:
     case ts.SyntaxKind.IndexSignature:
@@ -110,10 +118,6 @@ const visitor = (node: ts.Node | undefined) => {
     case ts.SyntaxKind.VariableDeclaration:
       return visitVariableDeclaration(node as ts.VariableDeclaration);
 
-    case ts.SyntaxKind.ExpressionWithTypeArguments:
-      return visitExpressionWithTypeArguments(
-        node as ts.ExpressionWithTypeArguments,
-      );
     case ts.SyntaxKind.NonNullExpression:
     case ts.SyntaxKind.AsExpression:
     case ts.SyntaxKind.SatisfiesExpression:
@@ -123,11 +127,13 @@ const visitor = (node: ts.Node | undefined) => {
       });
       break;
     case ts.SyntaxKind.CallExpression:
-      return visitCallExpression(node as ts.CallExpression);
     case ts.SyntaxKind.NewExpression:
-      return visitNewExpression(node as ts.NewExpression);
+      return visitCallOrNewExpression(node as ts.CallExpression);
+    case ts.SyntaxKind.ExpressionWithTypeArguments:
     case ts.SyntaxKind.TaggedTemplateExpression:
-      return visitTaggedTemplateExpression(node as ts.TaggedTemplateExpression);
+      return visitTypeArguments(
+        node as ts.ExpressionWithTypeArguments,
+      );
 
     case ts.SyntaxKind.Parameter:
       return visitParameter(node as ts.ParameterDeclaration);
@@ -263,19 +269,9 @@ const visitVariableDeclaration = (node: ts.VariableDeclaration) => {
   }
 };
 
-const visitExpressionWithTypeArguments = (
-  node: ts.ExpressionWithTypeArguments,
+const visitTypeArguments = (
+  node: ts.ExpressionWithTypeArguments | ts.TaggedTemplateExpression,
 ) => {
-  if (node.typeArguments) {
-    strip.push({
-      start: node.typeArguments.pos - 1,
-      end: node.typeArguments.end + 1 ,
-    });
-    node.typeArguments.forEach((t) => skip.add(t));
-  }
-};
-
-const visitTaggedTemplateExpression = (node: ts.TaggedTemplateExpression) => {
   if (node.typeArguments) {
     strip.push({
       start: node.typeArguments.pos - 1,
@@ -329,26 +325,26 @@ const visitParameter = (node: ts.ParameterDeclaration) => {
 const visitFunctionLikeDeclaration = (
   node: ts.FunctionLikeDeclaration,
 ) => {
+  let hasAbstractModifier = false;
   // Check if it has a declare modifier first
   if (node.modifiers) {
-    visitModifiers(node.modifiers);
-    if(ts.isMethodDeclaration(node) && hasModifier(node.modifiers, ts.SyntaxKind.AbstractKeyword)){
+    hasAbstractModifier = visitModifiers(node.modifiers);
+    if (ts.isMethodDeclaration(node) && hasAbstractModifier) {
       strip.push({
         start: node.pos,
-        end: node.end
-      })
-      skip.add(node)
+        end: node.end,
+      });
+      skip.add(node);
     }
   }
   if (
-    (!node?.modifiers ||
-      !hasModifier(node.modifiers, ts.SyntaxKind.AbstractKeyword)) && !node.body
+    (!node?.modifiers || !hasAbstractModifier) && !node.body
   ) throw new TypeStripError("overload");
   if (node.typeParameters) {
     strip.push({
       start: node.typeParameters.pos - 1, // <
       end: node.typeParameters.end,
-      trailing: /,?\s*\>/
+      trailing: /,?\s*\>/,
     });
     node.typeParameters.forEach((t) => skip.add(t));
   }
@@ -361,7 +357,9 @@ const visitFunctionLikeDeclaration = (
   }
 };
 
-const visitCallExpression = (node: ts.CallExpression) => {
+const visitCallOrNewExpression = (
+  node: ts.CallExpression | ts.NewExpression,
+) => {
   if (node.typeArguments) {
     strip.push({
       start: node.typeArguments.pos - 1,
@@ -392,7 +390,8 @@ const visitClassLike = (
   if (node.typeParameters) {
     strip.push({
       start: node.typeParameters.pos - 1,
-      end: node.typeParameters.end + 1,
+      end: node.typeParameters.end ,
+      trailing: /,?\s*\>/,
     });
     node.typeParameters.forEach((t) => skip.add(t));
   }
@@ -406,28 +405,32 @@ const visitHeritageClause = (node: ts.HeritageClause) => {
 };
 
 const visitModifiers = (node: ts.NodeArray<ts.ModifierLike>) => {
-  if (hasModifier(node, ts.SyntaxKind.DeclareKeyword)) {
-    throw new TypeStripError("declare");
-  }
-  if (hasModifier(node, ts.SyntaxKind.AccessorKeyword)) {
-    throw new TypeStripError("accessor-keyword");
-  }
-  if (hasModifier(node, ts.SyntaxKind.Decorator)) {
-    throw new TypeStripError("decorator");
-  }
+  let hasAbstractModifier = false;
 
   for (const modifier of node) {
+    if (modifier.kind === ts.SyntaxKind.DeclareKeyword) {
+      throw new TypeStripError("declare");
+    }
+    if (modifier.kind === ts.SyntaxKind.AccessorKeyword) {
+      throw new TypeStripError("accessor-keyword");
+    }
+    if (modifier.kind === ts.SyntaxKind.Decorator) {
+      throw new TypeStripError("decorator");
+    }
     if (
       modifier.kind === ts.SyntaxKind.PublicKeyword ||
       modifier.kind === ts.SyntaxKind.PrivateKeyword ||
       modifier.kind === ts.SyntaxKind.ProtectedKeyword ||
       modifier.kind === ts.SyntaxKind.ReadonlyKeyword ||
-      modifier.kind === ts.SyntaxKind.OverrideKeyword ||
-      modifier.kind === ts.SyntaxKind.AbstractKeyword
+      modifier.kind === ts.SyntaxKind.OverrideKeyword
     ) {
       strip.push({ start: modifier.pos, end: modifier.end });
+    } else if (modifier.kind === ts.SyntaxKind.AbstractKeyword) {
+      strip.push({ start: modifier.pos, end: modifier.end });
+      hasAbstractModifier = true;
     }
   }
+  return hasAbstractModifier;
 };
 
 /**
@@ -454,24 +457,6 @@ const visitPropertyDeclaration = (node: ts.PropertyDeclaration) => {
   if (node.type) {
     strip.push({ start: node.type.pos - 1, end: node.type.end });
     skip.add(node.type);
-  }
-};
-
-/**
- * Handle new Expression
- *
- * @example
- * new Box<string>("hello")
- */
-const visitNewExpression = (
-  node: ts.NewExpression,
-) => {
-  if (node.typeArguments) {
-    strip.push({
-      start: node.typeArguments.pos - 1,
-      end: node.typeArguments.end + 1,
-    });
-    node.typeArguments.forEach((t) => skip.add(t));
   }
 };
 
