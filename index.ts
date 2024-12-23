@@ -158,8 +158,6 @@ const visitor = (node: ts.Node | undefined) => {
       throw new TypeStripError("enum");
     case ts.SyntaxKind.ModuleDeclaration:
       throw new TypeStripError("namespace");
-    case ts.SyntaxKind.JsxElement:
-      throw new TypeStripError("jsx");
     case ts.SyntaxKind.TypeAssertionExpression:
       throw new TypeStripError("type-assertion-expression");
   }
