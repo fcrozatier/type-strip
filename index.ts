@@ -9,17 +9,12 @@ export type TypeStripOptions = {
    * Whether to strip comments
    */
   removeComments?: boolean;
-  /**
-   * The file name used internally. Only .ts files are accepted
-   */
-  fileName?: string;
 };
 
 type StripItem = { start: number; end: number; trailing?: RegExp };
 
 const defaultOptions: Required<TypeStripOptions> = {
   removeComments: false,
-  fileName: "input.ts",
 };
 
 let sourceFile: ts.SourceFile;
@@ -41,7 +36,7 @@ export default (
   const optionsWitDefaults = { ...defaultOptions, ...options };
 
   sourceFile = ts.createSourceFile(
-    optionsWitDefaults.fileName,
+    "input.ts",
     input,
     ts.ScriptTarget.Latest,
     false, // setParentNodes
