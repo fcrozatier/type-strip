@@ -1,6 +1,8 @@
 import ts from "typescript";
 import { TypeStripError } from "./errors.ts";
 
+const SyntaxKind = ts.SyntaxKind
+
 /**
  * Stripping Options
  */
@@ -76,35 +78,32 @@ export default (
 
 const topLevelVisitor = (node: ts.Node) => {
   switch (node?.kind) {
-    case ts.SyntaxKind.ExportDeclaration:
-      visitExportDeclaration(node as ts.ExportDeclaration);
-      break;
-    case ts.SyntaxKind.ImportDeclaration:
-      visitImportDeclaration(node as ts.ImportDeclaration);
-      break;
-    default:
-      visitor(node);
+    case SyntaxKind.ExportDeclaration:
+      return visitExportDeclaration(node as ts.ExportDeclaration);
+    case SyntaxKind.ImportDeclaration:
+      return visitImportDeclaration(node as ts.ImportDeclaration);
   }
+  return visitor(node);
 };
 
 const visitor = (node: ts.Node) => {
   switch (node.kind) {
-    case ts.SyntaxKind.Identifier:
+    case SyntaxKind.Identifier:
       return;
 
-    case ts.SyntaxKind.VariableStatement:
+    case SyntaxKind.VariableStatement:
       return visitVariableStatement(node as ts.VariableStatement);
-    case ts.SyntaxKind.VariableDeclaration:
+    case SyntaxKind.VariableDeclaration:
       return visitVariableDeclaration(node as ts.VariableDeclaration);
 
-    case ts.SyntaxKind.InterfaceDeclaration:
-    case ts.SyntaxKind.TypeAliasDeclaration:
+    case SyntaxKind.InterfaceDeclaration:
+    case SyntaxKind.TypeAliasDeclaration:
       strip.push({ start: node.pos, end: node.end });
       return;
 
-    case ts.SyntaxKind.NonNullExpression:
-    case ts.SyntaxKind.AsExpression:
-    case ts.SyntaxKind.SatisfiesExpression:
+    case SyntaxKind.NonNullExpression:
+    case SyntaxKind.AsExpression:
+    case SyntaxKind.SatisfiesExpression:
       strip.push({
         start: (node as ts.AsExpression).expression.end,
         end: node.end,
@@ -112,35 +111,35 @@ const visitor = (node: ts.Node) => {
       visitor((node as ts.AsExpression).expression);
       return;
 
-    case ts.SyntaxKind.CallExpression:
-    case ts.SyntaxKind.NewExpression:
+    case SyntaxKind.CallExpression:
+    case SyntaxKind.NewExpression:
       return visitCallOrNewExpression(node as ts.CallExpression);
 
-    case ts.SyntaxKind.ExpressionWithTypeArguments:
-    case ts.SyntaxKind.TaggedTemplateExpression:
+    case SyntaxKind.ExpressionWithTypeArguments:
+    case SyntaxKind.TaggedTemplateExpression:
       return visitTypeArguments(
         node as ts.ExpressionWithTypeArguments,
       );
 
-    case ts.SyntaxKind.FunctionDeclaration:
-    case ts.SyntaxKind.MethodDeclaration:
-    case ts.SyntaxKind.GetAccessor:
-    case ts.SyntaxKind.SetAccessor:
-    case ts.SyntaxKind.Constructor:
-    case ts.SyntaxKind.FunctionExpression:
-    case ts.SyntaxKind.ArrowFunction:
+    case SyntaxKind.FunctionDeclaration:
+    case SyntaxKind.MethodDeclaration:
+    case SyntaxKind.GetAccessor:
+    case SyntaxKind.SetAccessor:
+    case SyntaxKind.Constructor:
+    case SyntaxKind.FunctionExpression:
+    case SyntaxKind.ArrowFunction:
       return visitFunctionLikeDeclaration(node as ts.FunctionLikeDeclaration);
 
-    case ts.SyntaxKind.ClassDeclaration:
-    case ts.SyntaxKind.ClassExpression:
+    case SyntaxKind.ClassDeclaration:
+    case SyntaxKind.ClassExpression:
       return visitClassLike(node as ts.ClassLikeDeclaration);
 
     // Unsupported features
-    case ts.SyntaxKind.EnumDeclaration:
+    case SyntaxKind.EnumDeclaration:
       throw new TypeStripError("enum");
-    case ts.SyntaxKind.ModuleDeclaration:
+    case SyntaxKind.ModuleDeclaration:
       throw new TypeStripError("namespace");
-    case ts.SyntaxKind.TypeAssertionExpression:
+    case SyntaxKind.TypeAssertionExpression:
       throw new TypeStripError("type-assertion-expression");
   }
 
@@ -219,12 +218,12 @@ const visitImportSpecifier = (
 
 const visitVariableStatement = (node: ts.VariableStatement) => {
   if (
-    node.modifiers && hasModifier(node.modifiers, ts.SyntaxKind.DeclareKeyword)
+    node.modifiers && hasModifier(node.modifiers, SyntaxKind.DeclareKeyword)
   ) {
     throw new TypeStripError("declare");
   }
   for (const declaration of node.declarationList.declarations) {
-    visitVariableDeclaration(declaration)
+    visitVariableDeclaration(declaration);
   }
 };
 
@@ -277,11 +276,11 @@ const visitParameter = (node: ts.ParameterDeclaration) => {
   if (
     node.modifiers &&
     hasModifier(node.modifiers, [
-      ts.SyntaxKind.PublicKeyword,
-      ts.SyntaxKind.PrivateKeyword,
-      ts.SyntaxKind.ProtectedKeyword,
-      ts.SyntaxKind.ReadonlyKeyword,
-      ts.SyntaxKind.OverrideKeyword,
+      SyntaxKind.PublicKeyword,
+      SyntaxKind.PrivateKeyword,
+      SyntaxKind.ProtectedKeyword,
+      SyntaxKind.ReadonlyKeyword,
+      SyntaxKind.OverrideKeyword,
     ])
   ) {
     throw new TypeStripError("parameter-property");
@@ -389,7 +388,7 @@ const visitClassLike = (node: ts.ClassLikeDeclaration) => {
 
   if (node.heritageClauses) {
     for (const clause of node.heritageClauses) {
-      if (clause.token === ts.SyntaxKind.ImplementsKeyword) {
+      if (clause.token === SyntaxKind.ImplementsKeyword) {
         strip.push({ start: clause.pos, end: clause.end });
       }
     }
@@ -398,10 +397,10 @@ const visitClassLike = (node: ts.ClassLikeDeclaration) => {
   if (node.members) {
     for (const member of node.members) {
       switch (member.kind) {
-        case ts.SyntaxKind.IndexSignature:
+        case SyntaxKind.IndexSignature:
           strip.push({ start: member.pos, end: member.end });
           break;
-        case ts.SyntaxKind.PropertyDeclaration:
+        case SyntaxKind.PropertyDeclaration:
           visitPropertyDeclaration(member as ts.PropertyDeclaration);
           break;
         default:
@@ -445,24 +444,24 @@ const visitModifiers = (node: ts.NodeArray<ts.ModifierLike>) => {
   let hasAbstractModifier = false;
 
   for (const modifier of node) {
-    if (modifier.kind === ts.SyntaxKind.DeclareKeyword) {
+    if (modifier.kind === SyntaxKind.DeclareKeyword) {
       throw new TypeStripError("declare");
     }
-    if (modifier.kind === ts.SyntaxKind.AccessorKeyword) {
+    if (modifier.kind === SyntaxKind.AccessorKeyword) {
       throw new TypeStripError("accessor-keyword");
     }
-    if (modifier.kind === ts.SyntaxKind.Decorator) {
+    if (modifier.kind === SyntaxKind.Decorator) {
       throw new TypeStripError("decorator");
     }
     if (
-      modifier.kind === ts.SyntaxKind.PublicKeyword ||
-      modifier.kind === ts.SyntaxKind.PrivateKeyword ||
-      modifier.kind === ts.SyntaxKind.ProtectedKeyword ||
-      modifier.kind === ts.SyntaxKind.ReadonlyKeyword ||
-      modifier.kind === ts.SyntaxKind.OverrideKeyword
+      modifier.kind === SyntaxKind.PublicKeyword ||
+      modifier.kind === SyntaxKind.PrivateKeyword ||
+      modifier.kind === SyntaxKind.ProtectedKeyword ||
+      modifier.kind === SyntaxKind.ReadonlyKeyword ||
+      modifier.kind === SyntaxKind.OverrideKeyword
     ) {
       strip.push({ start: modifier.pos, end: modifier.end });
-    } else if (modifier.kind === ts.SyntaxKind.AbstractKeyword) {
+    } else if (modifier.kind === SyntaxKind.AbstractKeyword) {
       strip.push({ start: modifier.pos, end: modifier.end });
       hasAbstractModifier = true;
     }
