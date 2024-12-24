@@ -20,8 +20,6 @@ const defaultOptions: Required<TypeStripOptions> = {
 let sourceFile: ts.SourceFile;
 let sourceCode: string;
 let outputCode: string;
-
-const skip = new Set<ts.Node>();
 let strip: StripItem[] = [];
 
 /**
@@ -45,80 +43,64 @@ export default (
 
   sourceCode = sourceFile.getFullText();
   outputCode = "";
+  strip = [];
 
-  try {
-    for (const statement of sourceFile.statements) {
-      walk(statement, topLevelVisitor);
-    }
-
-    let index = 0;
-    const sortedEdits = strip.toSorted((a, b) => a.start - b.start);
-
-    for (const { start, end, trailing } of sortedEdits) {
-      if (start !== undefined && end !== undefined) {
-        if (index < start) {
-          outputCode += sourceCode.slice(index, start);
-          index = end;
-        }
-        if (index < end) {
-          index = end;
-        }
-      }
-      if (trailing) {
-        const match = sourceCode.slice(index).match(trailing);
-        if (match) {
-          index += match[0].length;
-        }
-      }
-    }
-    if (index < sourceCode.length) {
-      outputCode += sourceCode.slice(index);
-    }
-
-    return outputCode;
-  } finally {
-    strip = [];
-    skip.clear();
+  for (const statement of sourceFile.statements) {
+    topLevelVisitor(statement);
   }
-};
 
-const walk = (node: ts.Node, visit: (node: ts.Node) => void): void => {
-  visit(node);
-
-  // the skip-list can change as a side-effect of visit
-  if (!skip.has(node)) {
-    node.forEachChild((child) => {
-      if (!skip.has(child)) {
-        walk(child, visit);
+  let index = 0;
+  for (const { start, end, trailing } of strip) {
+    if (start !== undefined && end !== undefined) {
+      if (index < start) {
+        outputCode += sourceCode.slice(index, start);
+        index = end;
       }
-    });
+      if (index < end) {
+        index = end;
+      }
+    }
+    if (trailing) {
+      const match = sourceCode.slice(index).match(trailing);
+      if (match) {
+        index += match[0].length;
+      }
+    }
   }
+  if (index < sourceCode.length) {
+    outputCode += sourceCode.slice(index);
+  }
+
+  return outputCode;
 };
 
 const topLevelVisitor = (node: ts.Node) => {
   switch (node?.kind) {
     case ts.SyntaxKind.ExportDeclaration:
-      return visitExportDeclaration(node as ts.ExportDeclaration);
+      visitExportDeclaration(node as ts.ExportDeclaration);
+      break;
     case ts.SyntaxKind.ImportDeclaration:
-      return visitImportDeclaration(node as ts.ImportDeclaration);
+      visitImportDeclaration(node as ts.ImportDeclaration);
+      break;
     default:
-      return visitor(node);
+      visitor(node);
   }
 };
 
-const visitor = (node: ts.Node | undefined) => {
-  switch (node?.kind) {
-    case ts.SyntaxKind.InterfaceDeclaration:
-    case ts.SyntaxKind.TypeAliasDeclaration:
-    case ts.SyntaxKind.IndexSignature:
-      strip.push({ start: node.pos, end: node.end });
-      skip.add(node);
-      break;
+const visitor = (node: ts.Node) => {
+  switch (node.kind) {
+    case ts.SyntaxKind.Identifier:
+      return;
 
     case ts.SyntaxKind.VariableStatement:
       return visitVariableStatement(node as ts.VariableStatement);
     case ts.SyntaxKind.VariableDeclaration:
       return visitVariableDeclaration(node as ts.VariableDeclaration);
+
+    case ts.SyntaxKind.InterfaceDeclaration:
+    case ts.SyntaxKind.TypeAliasDeclaration:
+      strip.push({ start: node.pos, end: node.end });
+      return;
 
     case ts.SyntaxKind.NonNullExpression:
     case ts.SyntaxKind.AsExpression:
@@ -127,18 +109,18 @@ const visitor = (node: ts.Node | undefined) => {
         start: (node as ts.AsExpression).expression.end,
         end: node.end,
       });
-      break;
+      visitor((node as ts.AsExpression).expression);
+      return;
+
     case ts.SyntaxKind.CallExpression:
     case ts.SyntaxKind.NewExpression:
       return visitCallOrNewExpression(node as ts.CallExpression);
+
     case ts.SyntaxKind.ExpressionWithTypeArguments:
     case ts.SyntaxKind.TaggedTemplateExpression:
       return visitTypeArguments(
         node as ts.ExpressionWithTypeArguments,
       );
-
-    case ts.SyntaxKind.Parameter:
-      return visitParameter(node as ts.ParameterDeclaration);
 
     case ts.SyntaxKind.FunctionDeclaration:
     case ts.SyntaxKind.MethodDeclaration:
@@ -149,20 +131,23 @@ const visitor = (node: ts.Node | undefined) => {
     case ts.SyntaxKind.ArrowFunction:
       return visitFunctionLikeDeclaration(node as ts.FunctionLikeDeclaration);
 
-    case ts.SyntaxKind.PropertyDeclaration:
-      return visitPropertyDeclaration(node as ts.PropertyDeclaration);
-
     case ts.SyntaxKind.ClassDeclaration:
     case ts.SyntaxKind.ClassExpression:
       return visitClassLike(node as ts.ClassLikeDeclaration);
 
-    // Unsupported syntax
+    // Unsupported features
     case ts.SyntaxKind.EnumDeclaration:
       throw new TypeStripError("enum");
     case ts.SyntaxKind.ModuleDeclaration:
       throw new TypeStripError("namespace");
     case ts.SyntaxKind.TypeAssertionExpression:
       throw new TypeStripError("type-assertion-expression");
+  }
+
+  for (const child of node.getChildren(sourceFile)) {
+    if (!ts.isToken(child) && !ts.isIdentifier(child)) {
+      visitor(child);
+    }
   }
 };
 
@@ -177,18 +162,15 @@ const visitor = (node: ts.Node | undefined) => {
 const visitExportDeclaration = (node: ts.ExportDeclaration) => {
   if (node.isTypeOnly) {
     strip.push({ start: node.pos, end: node.end });
-    skip.add(node);
   } else if (node.exportClause && ts.isNamedExports(node.exportClause)) {
     const exportsToSkip = node.exportClause.elements.map(visitExportSpecifier)
       .filter(isNotUndefined);
     if (exportsToSkip?.length === node.exportClause.elements.length) {
       // skip the whole import declaration
       strip.push({ start: node.pos, end: node.end });
-      skip.add(node);
     } else {
       for (const skipExport of exportsToSkip) {
         strip.push(skipExport);
-        skip.add(node);
       }
     }
   }
@@ -205,12 +187,10 @@ const visitExportSpecifier = (
 const visitImportDeclaration = (node: ts.ImportDeclaration) => {
   if (node.importClause?.isTypeOnly) {
     strip.push({ start: node.pos, end: node.end });
-    skip.add(node);
   } else if (node.importClause) {
     const skipDeclaration = visitImportClause(node.importClause);
     if (skipDeclaration) {
       strip.push({ start: node.pos, end: node.end });
-      skip.add(node);
     }
   }
 };
@@ -224,7 +204,6 @@ const visitImportClause = (node: ts.ImportClause) => {
     } else {
       for (const skipImport of importsToSkip) {
         strip.push(skipImport);
-        skip.add(node);
       }
     }
   }
@@ -244,6 +223,9 @@ const visitVariableStatement = (node: ts.VariableStatement) => {
   ) {
     throw new TypeStripError("declare");
   }
+  for (const declaration of node.declarationList.declarations) {
+    visitVariableDeclaration(declaration)
+  }
 };
 
 /**
@@ -252,6 +234,8 @@ const visitVariableStatement = (node: ts.VariableStatement) => {
  * let x: string = "foo";
  */
 const visitVariableDeclaration = (node: ts.VariableDeclaration) => {
+  visitor(node.name);
+
   if (node.exclamationToken) {
     strip.push({
       start: node.exclamationToken.pos,
@@ -264,7 +248,10 @@ const visitVariableDeclaration = (node: ts.VariableDeclaration) => {
       start: node.type.pos - 1,
       end: node.type.end,
     });
-    skip.add(node.type);
+  }
+
+  if (node.initializer) {
+    visitor(node.initializer);
   }
 };
 
@@ -276,7 +263,6 @@ const visitTypeArguments = (
       start: node.typeArguments.pos - 1,
       end: node.typeArguments.end + 1,
     });
-    node.typeArguments.forEach((t) => skip.add(t));
   }
 };
 
@@ -303,14 +289,12 @@ const visitParameter = (node: ts.ParameterDeclaration) => {
 
   if (ts.isIdentifier(node.name) && node.name.escapedText === "this") {
     strip.push({ start: node.pos, end: node.end, trailing: /,\s*/ });
-    skip.add(node.name);
   }
   if (node.questionToken) {
     strip.push({ start: node.questionToken.pos, end: node.questionToken.end });
   }
   if (node.type) {
     strip.push({ start: node.type.pos - 1, end: node.type.end });
-    skip.add(node.type);
   }
 };
 
@@ -333,27 +317,32 @@ const visitFunctionLikeDeclaration = (
         start: node.pos,
         end: node.end,
       });
-      skip.add(node);
     }
   }
-  if (
-    (!node?.modifiers || !hasAbstractModifier) && !node.body
-  ) throw new TypeStripError("overload");
+  if (node.name && !ts.isIdentifier(node.name)) {
+    visitor(node.name);
+  }
   if (node.typeParameters) {
     strip.push({
       start: node.typeParameters.pos - 1, // <
       end: node.typeParameters.end,
       trailing: /,?\s*\>/,
     });
-    node.typeParameters.forEach((t) => skip.add(t));
   }
   if (node.questionToken) {
     strip.push({ start: node.questionToken.pos, end: node.questionToken.end });
   }
+  if (node.parameters) {
+    for (const parameter of node.parameters) {
+      visitParameter(parameter);
+    }
+  }
   if (node.type) {
     strip.push({ start: node.type.pos - 1, end: node.type.end });
-    skip.add(node.type);
   }
+  if (node.body) {
+    visitor(node.body);
+  } else if (!hasAbstractModifier) throw new TypeStripError("overload");
 };
 
 const visitCallOrNewExpression = (
@@ -364,7 +353,13 @@ const visitCallOrNewExpression = (
       start: node.typeArguments.pos - 1,
       end: node.typeArguments.end + 1,
     });
-    node.typeArguments.forEach((t) => skip.add(t));
+  }
+  if (node.arguments) {
+    for (const argument of node.arguments) {
+      if (!ts.isIdentifier(argument)) {
+        visitor(argument);
+      }
+    }
   }
 };
 
@@ -378,18 +373,10 @@ const visitCallOrNewExpression = (
  *
  * abstract class Thing {};
  */
-const visitClassLike = (
-  node: ts.ClassLikeDeclaration,
-) => {
+const visitClassLike = (node: ts.ClassLikeDeclaration) => {
   // Check if it has a declare modifier first
   if (node.modifiers) {
     visitModifiers(node.modifiers);
-  }
-
-  if (node.heritageClauses) {
-    for (const clause of node.heritageClauses) {
-      visitHeritageClause(clause);
-    }
   }
 
   if (node.typeParameters) {
@@ -398,14 +385,59 @@ const visitClassLike = (
       end: node.typeParameters.end,
       trailing: /,?\s*\>/,
     });
-    node.typeParameters.forEach((t) => skip.add(t));
+  }
+
+  if (node.heritageClauses) {
+    for (const clause of node.heritageClauses) {
+      if (clause.token === ts.SyntaxKind.ImplementsKeyword) {
+        strip.push({ start: clause.pos, end: clause.end });
+      }
+    }
+  }
+
+  if (node.members) {
+    for (const member of node.members) {
+      switch (member.kind) {
+        case ts.SyntaxKind.IndexSignature:
+          strip.push({ start: member.pos, end: member.end });
+          break;
+        case ts.SyntaxKind.PropertyDeclaration:
+          visitPropertyDeclaration(member as ts.PropertyDeclaration);
+          break;
+        default:
+          visitor(member);
+          break;
+      }
+    }
   }
 };
 
-const visitHeritageClause = (node: ts.HeritageClause) => {
-  if (node.token === ts.SyntaxKind.ImplementsKeyword) {
-    strip.push({ start: node.pos, end: node.end });
-    skip.add(node);
+/**
+ * Handle property declaration
+ *
+ * @example
+ * class Person {
+ *   name: string;
+ * }
+ */
+const visitPropertyDeclaration = (node: ts.PropertyDeclaration) => {
+  if (node.modifiers) {
+    visitModifiers(node.modifiers);
+  }
+  if (!ts.isIdentifier(node.name)) {
+    visitor(node.name);
+  }
+  if (node.questionToken) {
+    strip.push({ start: node.questionToken.pos, end: node.questionToken.end });
+  }
+  if (node.exclamationToken) {
+    strip.push({
+      start: node.exclamationToken.pos,
+      end: node.exclamationToken.end,
+    });
+  }
+  if (node.type) {
+    strip.push({ start: node.type.pos - 1, end: node.type.end });
   }
 };
 
@@ -436,33 +468,6 @@ const visitModifiers = (node: ts.NodeArray<ts.ModifierLike>) => {
     }
   }
   return hasAbstractModifier;
-};
-
-/**
- * Handle property declaration
- *
- * @example
- * class Person {
- *   name: string;
- * }
- */
-const visitPropertyDeclaration = (node: ts.PropertyDeclaration) => {
-  if (node.modifiers) {
-    visitModifiers(node.modifiers);
-  }
-  if (node.questionToken) {
-    strip.push({ start: node.questionToken.pos, end: node.questionToken.end });
-  }
-  if (node.exclamationToken) {
-    strip.push({
-      start: node.exclamationToken.pos,
-      end: node.exclamationToken.end,
-    });
-  }
-  if (node.type) {
-    strip.push({ start: node.type.pos - 1, end: node.type.end });
-    skip.add(node.type);
-  }
 };
 
 /**
