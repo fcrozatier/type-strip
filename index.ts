@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { TypeStripError } from "./errors.ts";
 
-const SyntaxKind = ts.SyntaxKind
+const SyntaxKind = ts.SyntaxKind;
 
 /**
  * Stripping Options
@@ -47,37 +47,40 @@ export default (
   outputCode = "";
   strip = [];
 
-  for (const statement of sourceFile.statements) {
-    topLevelVisitor(statement);
+  const statements = sourceFile.statements;
+  for (let i = 0; i < statements.length; i++) {
+    topLevelVisitor(statements[i]);
   }
 
-  let index = 0;
-  for (const { start, end, trailing } of strip) {
+  let currentIndex = 0;
+  for (let i = 0; i < strip.length; i++) {
+    const { start, end, trailing } = strip[i];
+
     if (start !== undefined && end !== undefined) {
-      if (index < start) {
-        outputCode += sourceCode.slice(index, start);
-        index = end;
+      if (currentIndex < start) {
+        outputCode += sourceCode.slice(currentIndex, start);
+        currentIndex = end;
       }
-      if (index < end) {
-        index = end;
+      if (currentIndex < end) {
+        currentIndex = end;
       }
     }
     if (trailing) {
-      const match = sourceCode.slice(index).match(trailing);
+      const match = sourceCode.slice(currentIndex).match(trailing);
       if (match) {
-        index += match[0].length;
+        currentIndex += match[0].length;
       }
     }
   }
-  if (index < sourceCode.length) {
-    outputCode += sourceCode.slice(index);
+  if (currentIndex < sourceCode.length) {
+    outputCode += sourceCode.slice(currentIndex);
   }
 
   return outputCode;
 };
 
 const topLevelVisitor = (node: ts.Node) => {
-  switch (node?.kind) {
+  switch (node.kind) {
     case SyntaxKind.ExportDeclaration:
       return visitExportDeclaration(node as ts.ExportDeclaration);
     case SyntaxKind.ImportDeclaration:
@@ -143,11 +146,11 @@ const visitor = (node: ts.Node) => {
       throw new TypeStripError("type-assertion-expression");
   }
 
-  for (const child of node.getChildren(sourceFile)) {
+  node.forEachChild((child) => {
     if (!ts.isToken(child) && !ts.isIdentifier(child)) {
       visitor(child);
     }
-  }
+  });
 };
 
 /**
@@ -168,8 +171,8 @@ const visitExportDeclaration = (node: ts.ExportDeclaration) => {
       // skip the whole import declaration
       strip.push({ start: node.pos, end: node.end });
     } else {
-      for (const skipExport of exportsToSkip) {
-        strip.push(skipExport);
+      for (let i = 0; i < exportsToSkip.length; i++) {
+        strip.push(exportsToSkip[i]);
       }
     }
   }
@@ -201,8 +204,8 @@ const visitImportClause = (node: ts.ImportClause) => {
     if (importsToSkip?.length === node.namedBindings?.elements.length) {
       return true; // skip the whole import declaration
     } else {
-      for (const skipImport of importsToSkip) {
-        strip.push(skipImport);
+      for (let i = 0; i < importsToSkip.length; i++) {
+        strip.push(importsToSkip[i]);
       }
     }
   }
@@ -222,8 +225,9 @@ const visitVariableStatement = (node: ts.VariableStatement) => {
   ) {
     throw new TypeStripError("declare");
   }
-  for (const declaration of node.declarationList.declarations) {
-    visitVariableDeclaration(declaration);
+  const declarations = node.declarationList.declarations;
+  for (let i = 0; i < declarations.length; i++) {
+    visitVariableDeclaration(declarations[i]);
   }
 };
 
@@ -332,8 +336,9 @@ const visitFunctionLikeDeclaration = (
     strip.push({ start: node.questionToken.pos, end: node.questionToken.end });
   }
   if (node.parameters) {
-    for (const parameter of node.parameters) {
-      visitParameter(parameter);
+    const parameters = node.parameters;
+    for (let i = 0; i < parameters.length; i++) {
+      visitParameter(parameters[i]);
     }
   }
   if (node.type) {
@@ -354,7 +359,9 @@ const visitCallOrNewExpression = (
     });
   }
   if (node.arguments) {
-    for (const argument of node.arguments) {
+    const args = node.arguments;
+    for (let i = 0; i < args.length; i++) {
+      const argument = args[i];
       if (!ts.isIdentifier(argument)) {
         visitor(argument);
       }
@@ -387,15 +394,21 @@ const visitClassLike = (node: ts.ClassLikeDeclaration) => {
   }
 
   if (node.heritageClauses) {
-    for (const clause of node.heritageClauses) {
-      if (clause.token === SyntaxKind.ImplementsKeyword) {
-        strip.push({ start: clause.pos, end: clause.end });
+    const heritageClauses = node.heritageClauses;
+    for (let i = 0; i < heritageClauses.length; i++) {
+      const heritageClause = heritageClauses[i];
+
+      if (heritageClause.token === SyntaxKind.ImplementsKeyword) {
+        strip.push({ start: heritageClause.pos, end: heritageClause.end });
       }
     }
   }
 
   if (node.members) {
-    for (const member of node.members) {
+    const members = node.members;
+    for (let i = 0; i < members.length; i++) {
+      const member = members[i];
+
       switch (member.kind) {
         case SyntaxKind.IndexSignature:
           strip.push({ start: member.pos, end: member.end });
@@ -443,7 +456,9 @@ const visitPropertyDeclaration = (node: ts.PropertyDeclaration) => {
 const visitModifiers = (node: ts.NodeArray<ts.ModifierLike>) => {
   let hasAbstractModifier = false;
 
-  for (const modifier of node) {
+  for (let i = 0; i < node.length; i++) {
+    const modifier = node[i];
+
     if (modifier.kind === SyntaxKind.DeclareKeyword) {
       throw new TypeStripError("declare");
     }
