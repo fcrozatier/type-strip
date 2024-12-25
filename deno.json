@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "name": "@fcrozatier/type-strip",
   "license": "MIT",
   "exports": "./index.ts",
@@ -18,5 +18,5 @@
     "typescript": "npm:typescript@^5.7.2"
   },
   "exclude": ["tests/**/input.ts", "tests/**/input.tsx", "tests/**/output.ts"],
-  "publish": { "exclude": ["tests", "scripts", ".vscode"] }
+  "publish": { "exclude": ["tests", "scripts", ".vscode", "assets", "benchmark"] }
 }
