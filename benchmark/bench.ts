@@ -14,7 +14,7 @@ import typeStrip from "../index.ts";
  *
  */
 
-const path = "scripts/fixtures.ts";
+const path = "benchmark/fixtures.ts";
 console.log(`%cinput ${path}`, "color: magenta");
 const text = await Deno.readTextFile(path);
 

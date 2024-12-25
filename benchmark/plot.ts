@@ -42,4 +42,4 @@ for (const [key, value] of Object.entries(groupedByName)) {
   data[key] = points;
 }
 
-Deno.writeTextFileSync("./scripts/plot.json", JSON.stringify(data, null, 2));
+Deno.writeTextFileSync("./benchmark/plot.json", JSON.stringify(data, null, 2));
