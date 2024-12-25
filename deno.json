@@ -18,5 +18,5 @@
     "typescript": "npm:typescript@^5.7.2"
   },
   "exclude": ["tests/**/input.ts", "tests/**/input.tsx", "tests/**/output.ts"],
-  "publish": { "exclude": ["tests", "scripts", ".vscode", "assets", "benchmark"] }
+  "publish": { "exclude": ["tests", "scripts", ".vscode"] }
 }
