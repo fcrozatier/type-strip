@@ -4,7 +4,7 @@ import { TypeStripError } from "./errors.ts";
 const SyntaxKind = ts.SyntaxKind;
 
 /**
- * Stripping Options
+ * `Type-Strip` Options
  */
 export type TypeStripOptions = {
   /**
@@ -15,13 +15,10 @@ export type TypeStripOptions = {
 
 type StripItem = { start: number; end: number; trailing?: RegExp };
 
-const defaultOptions: Required<TypeStripOptions> = {
-  removeComments: false,
-};
-
 let sourceFile: ts.SourceFile;
 let sourceCode: string;
 let outputCode: string;
+let removeComments: boolean;
 let strip: StripItem[] = [];
 
 /**
@@ -33,8 +30,6 @@ export default (
   input: string,
   options?: TypeStripOptions,
 ): string => {
-  const optionsWitDefaults = { ...defaultOptions, ...options };
-
   sourceFile = ts.createSourceFile(
     "input.ts",
     input,
@@ -43,6 +38,7 @@ export default (
     ts.ScriptKind.TS,
   );
 
+  removeComments = options?.removeComments ?? false;
   sourceCode = sourceFile.getFullText();
   outputCode = "";
   strip = [];
@@ -79,7 +75,24 @@ export default (
   return outputCode;
 };
 
+const stripComments = (node: ts.Node) => {
+  const commentRanges = ts.getLeadingCommentRanges(sourceCode, node.pos);
+  if (commentRanges) {
+    for (let i = 0; i < commentRanges.length; i++) {
+      const commentRange = commentRanges[i];
+      strip.push({
+        start: commentRange.pos,
+        end: commentRange.end,
+        trailing: commentRange.hasTrailingNewLine ? /\n?/ : undefined,
+      });
+    }
+  }
+};
+
 const topLevelVisitor = (node: ts.Node) => {
+  if (removeComments) {
+    stripComments(node);
+  }
   switch (node.kind) {
     case SyntaxKind.ExportDeclaration:
       return visitExportDeclaration(node as ts.ExportDeclaration);
@@ -90,6 +103,9 @@ const topLevelVisitor = (node: ts.Node) => {
 };
 
 const visitor = (node: ts.Node) => {
+  if (removeComments) {
+    stripComments(node);
+  }
   switch (node.kind) {
     case SyntaxKind.Identifier:
       return;
