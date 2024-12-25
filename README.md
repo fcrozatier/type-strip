@@ -1,19 +1,21 @@
-# The Type Strip
+# Type-Strip
 
 ![blue strip with types](/assets/strip1.png)
 
-*A type-stripper that keeps your code forward compatible with the TC39 Type Annotation Proposal*
+*A fast type-stripper that keeps your code forward compatible with the TC39 Type Annotation Proposal*
 
 
-`TypeStrip` is a lightweight TypeScript type-stripper: it takes TypeScript code as input and outputs JavaScript code with the type annotations removed.
+`Type-Strip` is a lightweight TypeScript type-stripper: it takes TypeScript code as input and outputs JavaScript code with the type annotations removed.
 
-One of the goals of this project is to also ensure **forward compatibility** of your code with the TC39 [Type Annotation Proposal](https://tc39.es/proposal-type-annotations/). This means that when the proposal reaches stage 4, you'll be able to seamlessly change your file extensions to `.js`, and won't need a transpilation step anymore.
+It also ensures **forward compatibility** of your code with the TC39 [Type Annotation Proposal](https://tc39.es/proposal-type-annotations/). This means that when the proposal reaches stage 4, you'll be able to seamlessly change your file extensions to `.js`, and won't need a transpilation step anymore.
+
+If you're using modern TypeScript today, then `Type-Strip` maybe the only build step you need.
 
 ## Features
 
-- Strips type annotations. If you're using modern TypeScript, then this may be all the transpilation you need
-- Throws an error when an [unsupported syntax](#unsupported-syntaxes) is detected.
-- Performs automatic semi-column insertion.
+- Strips type annotations
+- Fast. See the [benchmark](#benchmark)
+- Throws when an [unsupported feature](#unsupported-feature) is detected.
 
 ## Installation
 
@@ -37,24 +39,51 @@ console.log(strip("let num: number = 0;", {/* options */}));
 //-> let num = 0;
 ```
 
+### Example
+
+Input
+
+```ts
+/**
+ * This class implements a Person
+ */
+class Person {
+  // Index signature
+  [key: string]: any;
+
+  name: string;
+  constructor(name: string) {
+    this.name = name;
+  }
+  getGreeting(): string {
+    return `Hello, my name is ${this.name}`;
+  }
+}
+```
+
+Output with option `removeComments: true`
+
+```ts
+class Person {
+  name;
+  constructor(name) {
+    this.name = name;
+  }
+  getGreeting() {
+    return `Hello, my name is ${this.name}`;
+  }
+}
+```
+
 ### Options
 
 <dl>
   <dt><code>removeComments?: boolean</code></dt>
   <dd>Whether to strip comments</dd>
   <dd><em>Default</em> <code>false</code></dd>
-
-  <dt><code>prettyPrint?: boolean</code></dt>
-  <dd>A simple postprocessing step to decode Unicode escape sequences and fix output indentation to 2 spaces. If you only use ASCII characters in your code (no accents, emojis etc) or if you don't care about these characters remaining human readable in the source, you can keep this option to <code>false</code>
-  </dd>
-  <dd><em>Default</em> <code>false</code></dd>
-
-  <dt><code>fileName?: string</code></dt>
-  <dd>The file name used internally. Only .ts files are accepted</dd>
-  <dd><em>Default</em> <code>"input.ts"</code></dd>
 </dl>
 
-## Unsupported syntaxes
+## Unsupported features
 
 The goal of the TC39 [proposal](https://tc39.es/proposal-type-annotations/) is to add type annotations without modifying the semantics of the language. This means that TypeScript-only features requiring a transpilation step are not supported.
 
@@ -273,6 +302,25 @@ const modern = (something as string).length; // as-expression
 
 You need to import types explicitly to avoid runtime errors. To enforce this make sure your `tsconfig.json` contains the `"verbatimModuleSyntax": true` rule.
 
----
+### Automatic semi-column insertion
 
-![Another blue strip with types](/assets/strip2.png)
+The JavaScript syntax doesn't enforce the use of semi-columns, which can result in ambiguous or altogether buggy programs when stripping types. It's recommended to enforce the semi-columns rule in your formatter.
+
+```ts
+age // Without a semi-column this will become `age(1);` after type stripping
+type Foo = string;
+(1);
+```
+
+If you want to rely on automatic semi-column insertion at "transpilation time", then [tsBlankSpace](https://github.com/bloomberg/ts-blank-space/) is a very good alternative. Note that it has a different focus than `Type-Strip` as it supports JSX, and inserts blank spaces instead of just stripping the types, which can result in bigger file sizes.
+
+## Benchmark
+
+
+`Type-Strip` is very fast: for short files of about 1000 lines of code it's 20% faster than esbuild.
+
+![The relative performance of Type-Strip on files of 998 lines](/assets/benchmark-relative.png)
+
+Check out the interactive [plot](/benchmark/index.html)
+
+![Benchmark of Type-Strip vs esbuild on small files](/assets/benchmark-absolute.png)
