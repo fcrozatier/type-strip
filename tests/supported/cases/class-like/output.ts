@@ -1,5 +1,6 @@
 // Class Declaration
 class Person {
+
   name;
   constructor(name) {
     this.name = name;
@@ -8,18 +9,24 @@ class Person {
     return `Hello, my name is ${this.name}`;
   }
 }
-export const Mixin = (superclass) => {
+
+export const Mixin = (
+  superclass,
+) => {
   // Class Expression
-  return class extends superclass {
-  };
+  return class extends superclass { };
 };
+
 // Computed properties
 const computed = () => "computed";
+
 class Person {
   [computed()];
+
   get [computed()]() {
     return "get";
   }
+
   set [computed()](v) {
     console.log("set");
   }

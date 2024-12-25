@@ -1,5 +1,6 @@
 class Circle extends ShapeBase {
   radius;
+
   constructor(radius) {
     super();
     this.radius = radius;
@@ -8,13 +9,13 @@ class Circle extends ShapeBase {
     return Math.PI * this.radius ** 2;
   }
 }
+
 // Overrides
-class UniCircle extends Circle {
-  radius = 1;
+class UniCircle extends Circle { radius = 1;
+
   constructor(radius) {
     super(1);
-  }
-  getArea() {
+  } getArea() {
     return Math.PI;
   }
 }

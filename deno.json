@@ -4,8 +4,8 @@
   "license": "MIT",
   "exports": "./index.ts",
   "tasks": {
-    "gen:fixtures": "deno run --allow-write scripts/fixtures-script.ts",
-    "bench": "deno bench --allow-read --allow-env --allow-run scripts/bench.ts ",
+    "gen:fixtures": "deno run --allow-write benchmark/fixtures-script.ts",
+    "bench": "deno bench --allow-read --allow-env --allow-run benchmark/bench.ts ",
     "test": "deno test --allow-read",
     "coverage": "deno test --allow-read --coverage && deno coverage --include='index.ts' --html && open coverage/html/index.html"
   },

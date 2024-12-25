@@ -5,12 +5,13 @@ class Person {
 
   name: string;
   constructor(name: string) {
-      this.name = name;
+    this.name = name;
   }
   getGreeting(): string {
-      return `Hello, my name is ${this.name}`;
+    return `Hello, my name is ${this.name}`;
   }
 }
+
 export const Mixin = <
 T extends Constructor<Thing>,
 >(
@@ -19,6 +20,7 @@ T extends Constructor<Thing>,
   // Class Expression
   return class extends superclass implements Interface { };
 };
+
 // Computed properties
 const computed = <T>():T => "computed";
 

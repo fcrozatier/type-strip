@@ -24,11 +24,11 @@ for await (
   })
 ) {
   const files = await Array.fromAsync(
-    walk(directory.path, { exts: [".ts", ".tsx"], maxDepth: 1 }),
+    walk(directory.path, { exts: [".ts"], maxDepth: 1 }),
   );
 
   const inputEntry = files.find((file) =>
-    file.name === "input.ts" || file.name === "input.tsx"
+    file.name === "input.ts"
   );
 
   if (inputEntry) {
@@ -44,7 +44,7 @@ for await (
 
     Deno.test(`handles ${testCase}`, () => {
       assertThrows(
-        () => strip(inputCode, { fileName: inputEntry.name }),
+        () => strip(inputCode),
         TypeStripError,
         errorMessage,
       );
