@@ -15,7 +15,7 @@ If you're using modern TypeScript today, then `Type-Strip` maybe the only build 
 
 - Strips type annotations
 - Fast. See the [benchmark](#benchmark)
-- Throws when an [unsupported feature](#unsupported-feature) is detected.
+- Throws when an [unsupported feature](#unsupported-features) is detected.
 
 ## Installation
 
