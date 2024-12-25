@@ -16,7 +16,7 @@ If you're using modern TypeScript today, then `Type-Strip` maybe the only build 
 - Strips type annotations
 - Optionally strips comments. See [options](#options)
 - Fast. See the [benchmark](#benchmark)
-- Throws when an [unsupported feature](#unsupported-features) is detected.
+- Throws when an [unsupported syntax](#unsupported-features) is detected.
 
 ## Installation
 
