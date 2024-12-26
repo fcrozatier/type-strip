@@ -3,17 +3,6 @@ import { walk } from "@std/fs";
 import { basename, join } from "@std/path";
 import TypeStrip from "../../index.ts";
 
-/**
- * Regex or string to filter the tests to run
- *
- * @example
- * const only = /.* /; // runs all tests
- * const only = /variable-declarations/; // only runs the "variable-declarations" test case
- *
- * Skip all
- * const only = undefined
- * const skip = [/.* /]
- */
 const only = [/.*/];
 const skip = undefined;
 

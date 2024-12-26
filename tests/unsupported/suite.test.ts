@@ -4,13 +4,6 @@ import { basename, join } from "@std/path";
 import { ERROR_MESSAGE, TypeStripError } from "../../errors.ts";
 import strip from "../../index.ts";
 
-/**
- * Regex or string to filter the tests to run
- *
- * @example
- * const only = /.* /; // runs all tests
- * const only = /variable-declarations/; // only runs the "variable-declarations" test case
- */
 const only = [/.*/];
 const skip = undefined;
 
