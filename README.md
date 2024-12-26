@@ -1,5 +1,4 @@
-<h1><img src="/assets/strip.png" alt="">
-Type-Strip <img src="/assets/strip.png" alt="">
+<h1>Type-Strip <img src="/assets/strip.png" alt="">
 </h1>
 
 `Type-Strip` is a **super-fast** type-stripper: TypeScript code goes in, and JavaScript code with type annotations removed comes out.
