@@ -48,6 +48,8 @@ export default (
     topLevelVisitor(statements[i]);
   }
 
+  strip.sort((a, b) => a.start - b.start);
+
   let currentIndex = 0;
   for (let i = 0; i < strip.length; i++) {
     const { start, end, trailing } = strip[i];
