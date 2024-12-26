@@ -418,6 +418,8 @@ const visitClassLike = (node: ts.ClassLikeDeclaration) => {
 
       if (heritageClause.token === SyntaxKind.ImplementsKeyword) {
         strip.push({ start: heritageClause.pos, end: heritageClause.end });
+      } else {
+        heritageClause.forEachChild(visitor)
       }
     }
   }
