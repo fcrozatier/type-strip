@@ -1,15 +1,16 @@
-# Type-Strip
+<h1>
+<svg width="62" height="25" viewBox="0 0 62 25" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="12.67" height="29.3211" transform="matrix(1 0 -0.52252 0.852627 15.3208 0)" fill="#3178C6"/><rect width="29.007" height="29.3211" transform="matrix(1 0 -0.52252 0.852627 32.4219 0)" fill="#3178C6"/>
+</svg>
+Type-Strip <svg width="62" height="25" viewBox="0 0 62 25" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="12.67" height="29.3211" transform="matrix(1 0 -0.52252 0.852627 15.3208 0)" fill="#3178C6"/><rect width="29.007" height="29.3211" transform="matrix(1 0 -0.52252 0.852627 32.4219 0)" fill="#3178C6"/>
+</svg>
 
-![blue strip with types](/assets/strip1.png)
+</h1>
 
-*A fast type-stripper that keeps your code forward compatible with the TC39 Type Annotation Proposal*
+`Type-Strip` is a **super-fast** type-stripper: TypeScript code goes in, and JavaScript code with type annotations removed comes out.
 
+It also ensures **forward compatibility** with the TC39 [Type Annotation Proposal](https://tc39.es/proposal-type-annotations/). This means that when the proposal reaches stage 4, you'll be able to seamlessly change your file extensions to `.js`, and won't need a transpilation step anymore.
 
-`Type-Strip` is a lightweight TypeScript type-stripper: it takes TypeScript code as input and outputs JavaScript code with the type annotations removed.
-
-It also ensures **forward compatibility** of your code with the TC39 [Type Annotation Proposal](https://tc39.es/proposal-type-annotations/). This means that when the proposal reaches stage 4, you'll be able to seamlessly change your file extensions to `.js`, and won't need a transpilation step anymore.
-
-If you're using modern TypeScript today, then `Type-Strip` maybe the only build step you need.
+If you're using modern TypeScript today, then `Type-Strip` might be the only build step you need.
 
 ## Features
 
@@ -62,7 +63,7 @@ class Person {
 }
 ```
 
-Output with option `removeComments: true`
+Output with the `removeComments` option
 
 ```ts
 class Person {
@@ -318,7 +319,7 @@ If you want to rely on automatic semi-column insertion at "transpilation time", 
 ## Benchmark
 
 
-`Type-Strip` is very fast: for short files of about 1000 lines of code it's 20% faster than esbuild.
+`Type-Strip` is super-fast: for short files of about 1000 lines of code it's 20% faster than esbuild.
 
 ![The relative performance of Type-Strip on files of 998 lines](/assets/benchmark-relative.png)
 
