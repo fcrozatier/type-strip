@@ -1,9 +1,5 @@
-<h1>
-<svg width="62" height="25" viewBox="0 0 62 25" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="12.67" height="29.3211" transform="matrix(1 0 -0.52252 0.852627 15.3208 0)" fill="#3178C6"/><rect width="29.007" height="29.3211" transform="matrix(1 0 -0.52252 0.852627 32.4219 0)" fill="#3178C6"/>
-</svg>
-Type-Strip <svg width="62" height="25" viewBox="0 0 62 25" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="12.67" height="29.3211" transform="matrix(1 0 -0.52252 0.852627 15.3208 0)" fill="#3178C6"/><rect width="29.007" height="29.3211" transform="matrix(1 0 -0.52252 0.852627 32.4219 0)" fill="#3178C6"/>
-</svg>
-
+<h1><img src="/assets/strip.png" alt="">
+Type-Strip <img src="/assets/strip.png" alt="">
 </h1>
 
 `Type-Strip` is a **super-fast** type-stripper: TypeScript code goes in, and JavaScript code with type annotations removed comes out.
