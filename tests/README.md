@@ -1,6 +1,6 @@
 # Type-Strip test suite
 
-Each test suite has a `only` and `skip` parameters, to allow targeting or skipping specific test cases. The available test cases labels correspond to the `cases` subfolders of the suite.
+Each test suite has a `only` and `skip` parameters of type `Regex[] | undefined`, to allow targeting or skipping specific test cases. The available test cases labels correspond to the `cases` subfolders of the suite.
 
 To run the tests:
 
