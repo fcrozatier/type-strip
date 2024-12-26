@@ -9,7 +9,7 @@ class Person {
   // Index signature
   [key: string]: any;
 
-  name: string;
+  name: string;// the name of the person
 
   /**
    * Takes the name as input

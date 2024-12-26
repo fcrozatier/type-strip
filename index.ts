@@ -77,8 +77,11 @@ export default (
   return outputCode;
 };
 
-const stripComments = (node: ts.Node) => {
-  const commentRanges = ts.getLeadingCommentRanges(sourceCode, node.pos);
+const stripComments = (node: ts.Node, kind: "leading" | "trailing") => {
+  const commentRanges = kind === "leading"
+    ? ts.getLeadingCommentRanges(sourceCode, node.pos)
+    : ts.getTrailingCommentRanges(sourceCode, node.pos);
+
   if (commentRanges) {
     for (let i = 0; i < commentRanges.length; i++) {
       const commentRange = commentRanges[i];
@@ -93,85 +96,97 @@ const stripComments = (node: ts.Node) => {
 
 const topLevelVisitor = (node: ts.Node) => {
   if (removeComments) {
-    stripComments(node);
+    stripComments(node, "leading");
   }
-  switch (node.kind) {
-    case SyntaxKind.ExportDeclaration:
-      return visitExportDeclaration(node as ts.ExportDeclaration);
-    case SyntaxKind.ImportDeclaration:
-      return visitImportDeclaration(node as ts.ImportDeclaration);
+  try {
+    switch (node.kind) {
+      case SyntaxKind.ExportDeclaration:
+        return visitExportDeclaration(node as ts.ExportDeclaration);
+      case SyntaxKind.ImportDeclaration:
+        return visitImportDeclaration(node as ts.ImportDeclaration);
+    }
+    return visitor(node);
+  } finally {
+    if (removeComments) {
+      stripComments(node, "trailing");
+    }
   }
-  return visitor(node);
 };
 
 const visitor = (node: ts.Node) => {
   if (removeComments) {
-    stripComments(node);
+    stripComments(node, "leading");
   }
-  switch (node.kind) {
-    case SyntaxKind.Identifier:
-      return;
+  try {
+    switch (node.kind) {
+      case SyntaxKind.Identifier:
+        return;
 
-    case SyntaxKind.VariableStatement:
-      return visitVariableStatement(node as ts.VariableStatement);
-    case SyntaxKind.VariableDeclaration:
-      return visitVariableDeclaration(node as ts.VariableDeclaration);
+      case SyntaxKind.VariableStatement:
+        return visitVariableStatement(node as ts.VariableStatement);
+      case SyntaxKind.VariableDeclaration:
+        return visitVariableDeclaration(node as ts.VariableDeclaration);
 
-    case SyntaxKind.InterfaceDeclaration:
-    case SyntaxKind.TypeAliasDeclaration:
-      strip.push({ start: node.pos, end: node.end });
-      return;
+      case SyntaxKind.InterfaceDeclaration:
+      case SyntaxKind.TypeAliasDeclaration:
+        strip.push({ start: node.pos, end: node.end });
+        return;
 
-    case SyntaxKind.NonNullExpression:
-    case SyntaxKind.AsExpression:
-    case SyntaxKind.SatisfiesExpression:
-      strip.push({
-        start: (node as ts.AsExpression).expression.end,
-        end: node.end,
-      });
-      visitor((node as ts.AsExpression).expression);
-      return;
+      case SyntaxKind.NonNullExpression:
+      case SyntaxKind.AsExpression:
+      case SyntaxKind.SatisfiesExpression:
+        strip.push({
+          start: (node as ts.AsExpression).expression.end,
+          end: node.end,
+        });
+        visitor((node as ts.AsExpression).expression);
+        return;
 
-    case SyntaxKind.CallExpression:
-    case SyntaxKind.NewExpression:
-      return visitCallOrNewExpression(node as ts.CallExpression);
+      case SyntaxKind.CallExpression:
+      case SyntaxKind.NewExpression:
+        return visitCallOrNewExpression(node as ts.CallExpression);
 
-    case SyntaxKind.ExpressionWithTypeArguments:
-      return visitExpressionWithTypeArguments(
-        node as ts.ExpressionWithTypeArguments,
-      );
-    case SyntaxKind.TaggedTemplateExpression:
-      return visitTaggedTemplateExpression(
-        node as ts.TaggedTemplateExpression,
-      );
+      case SyntaxKind.ExpressionWithTypeArguments:
+        return visitExpressionWithTypeArguments(
+          node as ts.ExpressionWithTypeArguments,
+        );
+      case SyntaxKind.TaggedTemplateExpression:
+        return visitTaggedTemplateExpression(
+          node as ts.TaggedTemplateExpression,
+        );
 
-    case SyntaxKind.FunctionDeclaration:
-    case SyntaxKind.MethodDeclaration:
-    case SyntaxKind.GetAccessor:
-    case SyntaxKind.SetAccessor:
-    case SyntaxKind.Constructor:
-    case SyntaxKind.FunctionExpression:
-    case SyntaxKind.ArrowFunction:
-      return visitFunctionLikeDeclaration(node as ts.FunctionLikeDeclaration);
+      case SyntaxKind.FunctionDeclaration:
+      case SyntaxKind.MethodDeclaration:
+      case SyntaxKind.GetAccessor:
+      case SyntaxKind.SetAccessor:
+      case SyntaxKind.Constructor:
+      case SyntaxKind.FunctionExpression:
+      case SyntaxKind.ArrowFunction:
+        return visitFunctionLikeDeclaration(node as ts.FunctionLikeDeclaration);
 
-    case SyntaxKind.ClassDeclaration:
-    case SyntaxKind.ClassExpression:
-      return visitClassLike(node as ts.ClassLikeDeclaration);
+      case SyntaxKind.ClassDeclaration:
+      case SyntaxKind.ClassExpression:
+        return visitClassLike(node as ts.ClassLikeDeclaration);
 
-    // Unsupported features
-    case SyntaxKind.EnumDeclaration:
-      throw new TypeStripError("enum");
-    case SyntaxKind.ModuleDeclaration:
-      throw new TypeStripError("namespace");
-    case SyntaxKind.TypeAssertionExpression:
-      throw new TypeStripError("type-assertion-expression");
-  }
-
-  node.forEachChild((child) => {
-    if (!ts.isToken(child) && !ts.isIdentifier(child)) {
-      visitor(child);
+      // Unsupported features
+      case SyntaxKind.EnumDeclaration:
+        throw new TypeStripError("enum");
+      case SyntaxKind.ModuleDeclaration:
+        throw new TypeStripError("namespace");
+      case SyntaxKind.TypeAssertionExpression:
+        throw new TypeStripError("type-assertion-expression");
     }
-  });
+
+    node.forEachChild((child) => {
+      if (!ts.isToken(child) && !ts.isIdentifier(child)) {
+        visitor(child);
+      }
+    });
+  } finally {
+    if (removeComments) {
+      stripComments(node, "trailing");
+    }
+  }
 };
 
 /**
@@ -303,16 +318,9 @@ const visitTaggedTemplateExpression = (
     });
   }
 
-  visitor(node.template)
+  visitor(node.template);
 };
 
-/**
- * Handle function parameter type annotation
- * @example
- * function equals(x: number, y?: number) {
-      return x === y;
-    }
- */
 const visitParameter = (node: ts.ParameterDeclaration) => {
   if (
     node.modifiers &&
@@ -446,11 +454,11 @@ const visitClassLike = (node: ts.ClassLikeDeclaration) => {
       if (heritageClause.token === SyntaxKind.ImplementsKeyword) {
         strip.push({ start: heritageClause.pos, end: heritageClause.end });
       } else {
-        heritageClause.forEachChild((child) => {
-          if (!ts.isIdentifier(child)) {
-            visitor(child);
-          }
-        });
+        const children = heritageClause.types
+        for (let i = 0; i < children.length; i++) {
+          const child = children[i];
+          visitor(child);
+        }
       }
     }
   }
