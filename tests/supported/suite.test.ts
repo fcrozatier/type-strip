@@ -40,7 +40,9 @@ for await (
     const inputCode = await Deno.readTextFile(inputEntry.path);
     const outputCode = await Deno.readTextFile(outputEntry.path);
 
-    const stripped = TypeStrip(inputCode, { removeComments: testCase === "comments" });
+    const stripped = TypeStrip(inputCode, {
+      removeComments: testCase === "comments",
+    });
 
     Deno.test(`handles ${testCase}`, () => {
       assertEquals(stripped, outputCode);

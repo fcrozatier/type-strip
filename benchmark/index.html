@@ -250,7 +250,9 @@
         // Update tooltip
         tooltip.setAttribute(
           "transform",
-          2*x > 1700 ? `translate(${x - 130}, ${y - 35})` : `translate(${x + 15}, ${y + 15})`,
+          2 * x > 1700
+            ? `translate(${x - 130}, ${y - 35})`
+            : `translate(${x + 15}, ${y + 15})`,
         );
 
         tooltipText.textContent = `${Math.round(x) * 2} lines, ${

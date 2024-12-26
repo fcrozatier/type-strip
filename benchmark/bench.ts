@@ -11,7 +11,6 @@ import typeStrip from "../index.ts";
  * By default the benchmark runs on the whole file. The "full" benchmark splits the file in sections of incremental sizes which are all tested
  *
  * Save the benchmark data with `Deno task bench --json > out.json`
- *
  */
 
 const path = "benchmark/fixtures.ts";
