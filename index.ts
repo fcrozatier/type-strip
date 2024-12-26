@@ -48,8 +48,6 @@ export default (
     topLevelVisitor(statements[i]);
   }
 
-  strip.sort((a, b) => a.start - b.start);
-
   let currentIndex = 0;
   for (let i = 0; i < strip.length; i++) {
     const { start, end, trailing } = strip[i];
@@ -80,7 +78,7 @@ export default (
 const stripComments = (node: ts.Node, kind: "leading" | "trailing") => {
   const commentRanges = kind === "leading"
     ? ts.getLeadingCommentRanges(sourceCode, node.pos)
-    : ts.getTrailingCommentRanges(sourceCode, node.pos);
+    : ts.getTrailingCommentRanges(sourceCode, node.end);
 
   if (commentRanges) {
     for (let i = 0; i < commentRanges.length; i++) {
@@ -135,11 +133,11 @@ const visitor = (node: ts.Node) => {
       case SyntaxKind.NonNullExpression:
       case SyntaxKind.AsExpression:
       case SyntaxKind.SatisfiesExpression:
+        visitor((node as ts.AsExpression).expression);
         strip.push({
           start: (node as ts.AsExpression).expression.end,
           end: node.end,
         });
-        visitor((node as ts.AsExpression).expression);
         return;
 
       case SyntaxKind.CallExpression:
@@ -189,14 +187,6 @@ const visitor = (node: ts.Node) => {
   }
 };
 
-/**
- * Handle export declaration
- *
- * @example
- * export type { SomeLocalType };
- * export { type SomeLocalType };
- * export { thing, type SomeLocalType };
- */
 const visitExportDeclaration = (node: ts.ExportDeclaration) => {
   if (node.isTypeOnly) {
     strip.push({ start: node.pos, end: node.end });
@@ -454,7 +444,7 @@ const visitClassLike = (node: ts.ClassLikeDeclaration) => {
       if (heritageClause.token === SyntaxKind.ImplementsKeyword) {
         strip.push({ start: heritageClause.pos, end: heritageClause.end });
       } else {
-        const children = heritageClause.types
+        const children = heritageClause.types;
         for (let i = 0; i < children.length; i++) {
           const child = children[i];
           visitor(child);
@@ -473,7 +463,13 @@ const visitClassLike = (node: ts.ClassLikeDeclaration) => {
           strip.push({ start: member.pos, end: member.end });
           break;
         case SyntaxKind.PropertyDeclaration:
+          if (removeComments) {
+            stripComments(member, "leading");
+          }
           visitPropertyDeclaration(member as ts.PropertyDeclaration);
+          if (removeComments) {
+            stripComments(member, "trailing");
+          }
           break;
         default:
           visitor(member);
