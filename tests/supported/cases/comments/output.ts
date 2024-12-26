@@ -1,4 +1,3 @@
-
 class Person {
 
   name;
@@ -11,7 +10,4 @@ class Person {
         return `Hello, my name is ${this.name}`;
   }
 }
-
-
-
 export { Person, };
