@@ -137,9 +137,12 @@ const visitor = (node: ts.Node) => {
       return visitCallOrNewExpression(node as ts.CallExpression);
 
     case SyntaxKind.ExpressionWithTypeArguments:
-    case SyntaxKind.TaggedTemplateExpression:
-      return visitTypeArguments(
+      return visitExpressionWithTypeArguments(
         node as ts.ExpressionWithTypeArguments,
+      );
+    case SyntaxKind.TaggedTemplateExpression:
+      return visitTaggedTemplateExpression(
+        node as ts.TaggedTemplateExpression,
       );
 
     case SyntaxKind.FunctionDeclaration:
@@ -276,8 +279,8 @@ const visitVariableDeclaration = (node: ts.VariableDeclaration) => {
   }
 };
 
-const visitTypeArguments = (
-  node: ts.ExpressionWithTypeArguments | ts.TaggedTemplateExpression,
+const visitExpressionWithTypeArguments = (
+  node: ts.ExpressionWithTypeArguments,
 ) => {
   if (node.typeArguments) {
     strip.push({
@@ -285,6 +288,22 @@ const visitTypeArguments = (
       end: node.typeArguments.end + 1,
     });
   }
+  visitor(node.expression);
+};
+
+const visitTaggedTemplateExpression = (
+  node: ts.TaggedTemplateExpression,
+) => {
+  visitor(node.tag);
+
+  if (node.typeArguments) {
+    strip.push({
+      start: node.typeArguments.pos - 1,
+      end: node.typeArguments.end + 1,
+    });
+  }
+
+  visitor(node.template)
 };
 
 /**
@@ -310,12 +329,17 @@ const visitParameter = (node: ts.ParameterDeclaration) => {
 
   if (ts.isIdentifier(node.name) && node.name.escapedText === "this") {
     strip.push({ start: node.pos, end: node.end, trailing: /,\s*/ });
+  } else if (!ts.isIdentifier(node.name)) {
+    visitor(node.name);
   }
   if (node.questionToken) {
     strip.push({ start: node.questionToken.pos, end: node.questionToken.end });
   }
   if (node.type) {
     strip.push({ start: node.type.pos - 1, end: node.type.end });
+  }
+  if (node.initializer) {
+    visitor(node.initializer);
   }
 };
 
@@ -376,6 +400,9 @@ const visitCallOrNewExpression = (
       end: node.typeArguments.end + 1,
     });
   }
+  if (node.expression) {
+    visitor(node.expression);
+  }
   if (node.arguments) {
     const args = node.arguments;
     for (let i = 0; i < args.length; i++) {
@@ -423,7 +450,7 @@ const visitClassLike = (node: ts.ClassLikeDeclaration) => {
           if (!ts.isIdentifier(child)) {
             visitor(child);
           }
-        })
+        });
       }
     }
   }
@@ -448,14 +475,6 @@ const visitClassLike = (node: ts.ClassLikeDeclaration) => {
   }
 };
 
-/**
- * Handle property declaration
- *
- * @example
- * class Person {
- *   name: string;
- * }
- */
 const visitPropertyDeclaration = (node: ts.PropertyDeclaration) => {
   if (node.modifiers) {
     visitModifiers(node.modifiers);

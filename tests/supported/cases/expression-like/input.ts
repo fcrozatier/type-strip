@@ -1,2 +1,2 @@
 // Tagged Template Expression
-html<string>`<div>${"Hello"}</div>`;
+html<string>`<div>${"Hello" as string}</div>`;
