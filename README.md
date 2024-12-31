@@ -1,6 +1,4 @@
-<img src="/assets/type-strip.png" alt="" height="200" width="200">
-
-<h1>Type-Strip</h1>
+<h1 style="font-size: 8rem;"><img src="/assets/type-strip.png" alt="" height="200" width="200"> Type-Strip</h1>
 
 `Type-Strip` is a **super-fast** type-stripper: TypeScript code goes in, and JavaScript code with type annotations removed comes out.
 
