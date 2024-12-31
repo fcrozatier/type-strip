@@ -1,4 +1,4 @@
-<img src="/assets/type-strip.png" alt="" height="300" width="300">
+<img src="/assets/type-strip.png" alt="" height="256" width="256">
 
 <h1>Type-Strip</h1>
 
