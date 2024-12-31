@@ -1,4 +1,6 @@
-<img src="/assets/type-strip.png" alt="" height="200" width="200" style="display: block; margin: 0 auto;">
+<div style="display: flex; justify-content: center;">
+  <img src="/assets/type-strip.png" alt="" height="200" width="200">
+</div>
 
 <h1>Type-Strip</h1>
 
