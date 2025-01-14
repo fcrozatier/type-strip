@@ -498,6 +498,9 @@ const visitPropertyDeclaration = (node: ts.PropertyDeclaration) => {
   if (node.type) {
     strip.push({ start: node.type.pos - 1, end: node.type.end });
   }
+  if (node.initializer) {
+    visitor(node.initializer);
+  }
 };
 
 const visitModifiers = (node: ts.NodeArray<ts.ModifierLike>) => {
