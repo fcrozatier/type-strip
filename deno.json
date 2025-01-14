@@ -4,7 +4,7 @@
   "license": "MIT",
   "exports": "./index.ts",
   "tasks": {
-    "bump:version": "deno run --allow-read --allow-write --allow_run bump_version.ts",
+    "bump": "deno run --allow-read --allow-write --allow-run bump.ts",
     "gen:fixtures": "deno run --allow-write benchmark/fixtures-script.ts",
     "bench": "deno bench --allow-read --allow-env --allow-run benchmark/bench.ts ",
     "test": "deno test --allow-read",
