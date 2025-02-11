@@ -21,7 +21,7 @@ for await (
   );
 
   const inputEntry = files.find((file) => file.name === "input.ts");
-  const outputEntry = files.find((file) => file.name === "output.ts");
+  const outputEntry = files.find((file) => file.name === "output.js");
   const optionsEntry = files.find((file) => file.name === "options.ts");
 
   if (inputEntry && outputEntry) {
