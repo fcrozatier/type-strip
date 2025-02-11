@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { walk } from "@std/fs";
 import { basename, join } from "@std/path";
-import TypeStrip from "../../index.ts";
+import TypeStrip, { type TypeStripOptions } from "../../index.ts";
 
 const only = [/.*/];
 const skip = undefined;
@@ -17,21 +17,23 @@ for await (
   })
 ) {
   const files = await Array.fromAsync(
-    walk(directory.path, { exts: [".ts"], maxDepth: 1 }),
+    walk(directory.path, { exts: [".ts", ".js"], maxDepth: 1 }),
   );
 
   const inputEntry = files.find((file) => file.name === "input.ts");
   const outputEntry = files.find((file) => file.name === "output.ts");
+  const optionsEntry = files.find((file) => file.name === "options.ts");
 
   if (inputEntry && outputEntry) {
     const testCase = basename(directory.path);
 
     const inputCode = await Deno.readTextFile(inputEntry.path);
     const outputCode = await Deno.readTextFile(outputEntry.path);
+    const options: Required<TypeStripOptions> = optionsEntry
+      ? (await import(optionsEntry.path)).options
+      : { removeComments: false, tsToJsModuleSpecifiers: false };
 
-    const stripped = TypeStrip(inputCode, {
-      removeComments: testCase === "comments",
-    });
+    const stripped = TypeStrip(inputCode, options);
 
     Deno.test(`handles ${testCase}`, () => {
       assertEquals(stripped, outputCode);
