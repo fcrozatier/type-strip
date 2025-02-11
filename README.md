@@ -11,7 +11,7 @@ If you're using modern TypeScript today, then `Type-Strip` might be the only bui
 ## Features
 
 - Strips type annotations
-- Optionally strips comments. See [options](#options)
+- Optionally strips comments and rewrite .ts imports. See the [options](#options) below
 - Fast. See the [benchmark](#benchmark)
 - Throws when an [unsupported syntax](#unsupported-features) is detected.
 
@@ -42,6 +42,8 @@ console.log(strip("let num: number = 0;", {/* options */}));
 Input
 
 ```ts
+import { capitalize } from './utils.ts';
+
 /**
  * This class implements a Person
  */
@@ -51,23 +53,25 @@ class Person {
 
   name: string;
   constructor(name: string) {
-    this.name = name;
+    this.name = capitalize(name);
   }
-  getGreeting(): string {
+  greet(): string {
     return `Hello, my name is ${this.name}`;
   }
 }
 ```
 
-Output with the `removeComments` option
+Output with the `removeComments` and `tsToJsModuleSpecifiers` options:
 
 ```ts
+import { capitalize } from './utils.js';
+
 class Person {
   name;
   constructor(name) {
-    this.name = name;
+    this.name = capitalize(name);
   }
-  getGreeting() {
+  greet() {
     return `Hello, my name is ${this.name}`;
   }
 }
@@ -78,6 +82,10 @@ class Person {
 <dl>
   <dt><code>removeComments?: boolean</code></dt>
   <dd>Whether to strip comments</dd>
+  <dd><em>Default</em> <code>false</code></dd>
+
+  <dt><code>tsToJsModuleSpecifiers?: boolean</code></dt>
+  <dd>Whether to rewrite <code>.ts</code> module imports to <code>.js</code> imports</dd>
   <dd><em>Default</em> <code>false</code></dd>
 </dl>
 

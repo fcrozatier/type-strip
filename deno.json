@@ -31,7 +31,7 @@
   "exclude": [
     "tests/**/input.ts",
     "tests/**/input.tsx",
-    "tests/**/output.ts"
+    "tests/**/output.js"
   ],
   "publish": {
     "exclude": [
