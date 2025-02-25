@@ -61,7 +61,7 @@ class Person {
 }
 ```
 
-Output with the `removeComments` and `tsToJsModuleSpecifiers` options:
+Output with the `removeComments` and `pathRewriting` options:
 
 ```ts
 import { capitalize } from './utils.js';
@@ -84,7 +84,7 @@ class Person {
   <dd>Whether to strip comments</dd>
   <dd><em>Default</em> <code>false</code></dd>
 
-  <dt><code>tsToJsModuleSpecifiers?: boolean</code></dt>
+  <dt><code>pathRewriting?: boolean</code></dt>
   <dd>Whether to rewrite <code>.ts</code> module imports to <code>.js</code> imports</dd>
   <dd><em>Default</em> <code>false</code></dd>
 </dl>
