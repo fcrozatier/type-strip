@@ -12,14 +12,19 @@ export type TypeStripOptions = {
    */
   removeComments?: boolean;
   /**
-   * Whether to rewrite .ts module imports to .js imports
+   * @deprecated Use pathRewriting instead
    */
   tsToJsModuleSpecifiers?: boolean;
+  /**
+   * Whether to rewrite .ts module imports to .js imports
+   */
+  pathRewriting?: boolean;
 };
 
 const defaults: Required<TypeStripOptions> = {
   removeComments: false,
   tsToJsModuleSpecifiers: false,
+  pathRewriting: false,
 };
 
 type StripItem = { start: number; end: number; trailing?: RegExp };
@@ -28,7 +33,7 @@ let sourceFile: ts.SourceFile;
 let sourceCode: string;
 let outputCode: string;
 let removeComments: boolean;
-let tsToJsModuleSpecifiers: boolean;
+let pathRewriting: boolean;
 let strip: StripItem[] = [];
 
 /**
@@ -49,8 +54,8 @@ export default (
   );
 
   removeComments = options?.removeComments ?? defaults.removeComments;
-  tsToJsModuleSpecifiers = options?.tsToJsModuleSpecifiers ??
-    defaults.tsToJsModuleSpecifiers;
+  pathRewriting = (options?.pathRewriting || options?.tsToJsModuleSpecifiers) ??
+    defaults.pathRewriting;
 
   sourceCode = sourceFile.getFullText();
   outputCode = "";
@@ -215,6 +220,15 @@ const visitExportDeclaration = (node: ts.ExportDeclaration) => {
       }
     }
   }
+
+  const moduleSpecifier = node.moduleSpecifier;
+  if (pathRewriting && moduleSpecifier) {
+    if (ts.isStringLiteral(moduleSpecifier)) {
+      sourceCode = sourceCode.slice(0, moduleSpecifier.pos) +
+        ` "${moduleSpecifier.text.replace(/\.ts$/, ".js")}"` +
+        sourceCode.slice(moduleSpecifier.end);
+    }
+  }
 };
 
 const visitExportSpecifier = (
@@ -234,7 +248,7 @@ const visitImportDeclaration = (node: ts.ImportDeclaration) => {
       strip.push({ start: node.pos, end: node.end });
     }
   }
-  if (tsToJsModuleSpecifiers) {
+  if (pathRewriting) {
     if (ts.isStringLiteral(node.moduleSpecifier)) {
       const moduleSpecifier = node.moduleSpecifier;
 
