@@ -1,5 +1,5 @@
-import type { TypeStripOptions } from "../../../../index.ts";
+import type { TypeStripOptions } from "@fcrozatier/type-strip";
 
 export const options: TypeStripOptions = {
-  tsToJsModuleSpecifiers: true,
+  pathRewriting: true,
 };
