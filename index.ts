@@ -163,7 +163,7 @@ const visitor = (node: ts.Node) => {
           (node as ts.CallExpression).expression.kind ===
             SyntaxKind.ImportKeyword
         ) {
-          return visitCallImportExpression(node as ts.CallExpression);
+          return visitImportCallExpression(node as ts.CallExpression);
         }
         return visitCallOrNewExpression(node as ts.CallExpression);
       case SyntaxKind.NewExpression:
@@ -266,7 +266,7 @@ const visitImportDeclaration = (node: ts.ImportDeclaration) => {
   }
 };
 
-const visitCallImportExpression = (node: ts.CallExpression) => {
+const visitImportCallExpression = (node: ts.CallExpression) => {
   if (pathRewriting) {
     if (ts.isStringLiteral(node.arguments[0])) {
       const moduleSpecifier = node.arguments[0];
