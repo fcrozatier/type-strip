@@ -159,6 +159,13 @@ const visitor = (node: ts.Node) => {
         return;
 
       case SyntaxKind.CallExpression:
+        if (
+          (node as ts.CallExpression).expression.kind ===
+            SyntaxKind.ImportKeyword
+        ) {
+          return visitCallImportExpression(node as ts.CallExpression);
+        }
+        return visitCallOrNewExpression(node as ts.CallExpression);
       case SyntaxKind.NewExpression:
         return visitCallOrNewExpression(node as ts.CallExpression);
 
@@ -254,6 +261,18 @@ const visitImportDeclaration = (node: ts.ImportDeclaration) => {
 
       sourceCode = sourceCode.slice(0, moduleSpecifier.pos) +
         ` "${moduleSpecifier.text.replace(/\.ts$/, ".js")}"` +
+        sourceCode.slice(moduleSpecifier.end);
+    }
+  }
+};
+
+const visitCallImportExpression = (node: ts.CallExpression) => {
+  if (pathRewriting) {
+    if (ts.isStringLiteral(node.arguments[0])) {
+      const moduleSpecifier = node.arguments[0];
+
+      sourceCode = sourceCode.slice(0, moduleSpecifier.pos) +
+        `"${moduleSpecifier.text.replace(/\.ts$/, ".js")}"` +
         sourceCode.slice(moduleSpecifier.end);
     }
   }
