@@ -22,3 +22,9 @@ function logLength(arg) {
 
 logLength([1, 2, 3]);
 logLength("Hello");
+logLength("World");
+
+// Whitespace preceding `>`
+const spaceBox = new Box(true);
+const verySpaciousBox = new Box(true);
+logLength("World");

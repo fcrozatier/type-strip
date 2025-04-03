@@ -22,3 +22,9 @@ function logLength<T extends { length: number }>(arg: T): void {
 
 logLength([1, 2, 3]);
 logLength("Hello");
+logLength<string>("World");
+
+// Whitespace preceding `>`
+const spaceBox = new Box<boolean >(true);
+const verySpaciousBox = new Box< boolean , string >(true);
+logLength<string >("World");
