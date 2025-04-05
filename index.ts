@@ -381,7 +381,7 @@ const visitParameter = (node: ts.ParameterDeclaration) => {
   }
 
   if (ts.isIdentifier(node.name) && node.name.escapedText === "this") {
-    strip.push({ start: node.pos, end: node.end, trailing: /,\s*/ });
+    strip.push({ start: node.pos, end: node.end, trailing: /,?\s*/ });
   } else if (!ts.isIdentifier(node.name)) {
     visitor(node.name);
   }
@@ -450,7 +450,8 @@ const visitCallOrNewExpression = (
   if (node.typeArguments) {
     strip.push({
       start: node.typeArguments.pos - 1,
-      end: node.typeArguments.end + 1,
+      end: node.typeArguments.end,
+      trailing: /\s*\>/,
     });
   }
   if (node.expression) {
