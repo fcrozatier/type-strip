@@ -410,7 +410,11 @@ const visitFunctionLikeDeclaration = (
   // Check if it has a declare modifier first
   if (node.modifiers) {
     hasAbstractModifier = visitModifiers(node.modifiers);
-    if (ts.isMethodDeclaration(node) && hasAbstractModifier) {
+    if (
+      hasAbstractModifier &&
+      (ts.isMethodDeclaration(node) || ts.isGetAccessor(node) ||
+        ts.isSetAccessor(node))
+    ) {
       strip.push({
         start: node.pos,
         end: node.end,

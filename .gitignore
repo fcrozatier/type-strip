@@ -1,2 +1,3 @@
+deno.lock
 benchmark/fixtures.ts
 coverage
