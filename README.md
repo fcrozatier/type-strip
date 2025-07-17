@@ -11,7 +11,7 @@ If you're using modern TypeScript today, then `Type-Strip` might be the only bui
 ## Features
 
 - Strips type annotations
-- Optionally strips comments and rewrite .ts imports. See the [options](#options) below
+- Optionally strips comments and rewrites .ts imports. See the [options](#options) below
 - Fast. See the [benchmark](#benchmark)
 - Throws when an [unsupported syntax](#unsupported-features) is detected.
 
@@ -282,9 +282,9 @@ class Params {
 The alternative is to use explicit field declarations and assignments
 ```ts
 class Params {
-  public readonly x: number,
-  protected y: number,
-  private z: number
+  public readonly x: number;
+  protected y: number;
+  private z: number;
 
   constructor(x: number, y: number, z: number) {
     this.x = x;

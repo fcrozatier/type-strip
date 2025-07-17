@@ -5,7 +5,7 @@ Each test suite has a `only` and `skip` parameters of type `Regex[] | undefined`
 To run the tests:
 
 ```sh
-deno task test
+deno test -A
 ```
 
 To see the coverage:
