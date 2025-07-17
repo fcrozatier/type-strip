@@ -1,6 +1,7 @@
 # Release Flow
 
-This is release flow for the maintainers. If you're not a maintainer, you don't need to read this.
+This is release flow for the maintainers. If you're not a maintainer, you don't
+need to read this.
 
 To cut a release, follow these steps:
 
