@@ -3,10 +3,8 @@
   "name": "@fcrozatier/type-strip",
   "license": "MIT",
   "tasks": {
-    "bump": "deno run --allow-read --allow-write --allow-run bump.ts",
     "gen:fixtures": "deno run --allow-write benchmark/fixtures-script.ts",
     "bench": "deno bench --allow-read --allow-env --allow-run benchmark/bench.ts ",
-    "test": "deno test --allow-read",
     "coverage": "deno test --allow-read --coverage && deno coverage --include='index.ts' --html && open coverage/html/index.html"
   },
   "fmt": {
