@@ -5,7 +5,7 @@
   "tasks": {
     "gen:fixtures": "deno run --allow-write benchmark/fixtures-script.ts",
     "bench": "deno bench --allow-read --allow-env --allow-run benchmark/bench.ts ",
-    "coverage": "deno test --allow-read --coverage && deno coverage --include='index.ts' --html && open coverage/html/index.html"
+    "coverage": "deno test -A --coverage && deno coverage --include='index.ts' --html && open coverage/html/index.html"
   },
   "fmt": {
     "exclude": [
