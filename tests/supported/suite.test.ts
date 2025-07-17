@@ -31,7 +31,7 @@ for await (
     const outputCode = await Deno.readTextFile(outputEntry.path);
     const options: Required<TypeStripOptions> = optionsEntry
       ? (await import(optionsEntry.path)).options
-      : { removeComments: false, tsToJsModuleSpecifiers: false };
+      : { removeComments: false, pathRewriting: false };
 
     const stripped = TypeStrip(inputCode, options);
 
