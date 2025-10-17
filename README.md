@@ -4,16 +4,20 @@
 
 `Type-Strip` is a **super-fast** type-stripper: TypeScript code goes in, and JavaScript code with type annotations removed comes out.
 
-It also ensures **forward compatibility** with the TC39 [Type Annotation Proposal](https://tc39.es/proposal-type-annotations/). This means that when the proposal reaches stage 4, you'll be able to seamlessly change your file extensions to `.js`, and won't need a transpilation step anymore.
+It also ensures **forward compatibility** of your code with the TC39 [Type Annotation Proposal](https://tc39.es/proposal-type-annotations/).
 
 If you're using modern TypeScript today, then `Type-Strip` might be the only build step you need.
 
 ## Features
 
 - Strips type annotations
-- Optionally strips comments and rewrites .ts imports. See the [options](#options) below
+- (Optionally) strips comments
+- (Optionally) rewrites .ts imports to .js
+- (Optionally) remap aliases in import specifiers
 - Fast. See the [benchmark](#benchmark)
 - Throws when an [unsupported syntax](#unsupported-features) is detected.
+
+See the [options](https://jsr.io/@fcrozatier/type-strip/doc/~/TypeStripOptions) for more
 
 ## Installation
 
@@ -31,18 +35,18 @@ yarn dlx jsr add @fcrozatier/type-strip
 Strip a string of code, files etc.
 
 ```ts
-import strip from '@fcrozatier/type-strip';
+import stripTypes from '@fcrozatier/type-strip';
 
-console.log(strip("let num: number = 0;", {/* options */}));
-//-> let num = 0;
+stripTypes("let num: number = 0;", {/* options */});
+// let num = 0;
 ```
 
 ### Example
 
-Input
+Input file `./example.ts`
 
 ```ts
-import { capitalize } from './utils.ts';
+import { capitalize } from '$utils/strings.ts';
 
 /**
  * This class implements a Person
@@ -61,10 +65,25 @@ class Person {
 }
 ```
 
-Output with the `removeComments` and `pathRewriting` options:
+Options:
 
 ```ts
-import { capitalize } from './utils.js';
+{
+  removeComments: true,
+  pathRewriting: true,
+  remapSpecifiers: {
+    filePath: "./example.ts",
+    imports: {
+      "$utils/": "./lib/utils/",
+    },
+  },
+}
+```
+
+Output:
+
+```ts
+import { capitalize } from './lib/utils/strings.js';
 
 class Person {
   name;
@@ -77,17 +96,7 @@ class Person {
 }
 ```
 
-### Options
-
-<dl>
-  <dt><code>removeComments?: boolean</code></dt>
-  <dd>Whether to strip comments</dd>
-  <dd><em>Default</em> <code>false</code></dd>
-
-  <dt><code>pathRewriting?: boolean</code></dt>
-  <dd>Whether to rewrite <code>.ts</code> module imports to <code>.js</code> imports</dd>
-  <dd><em>Default</em> <code>false</code></dd>
-</dl>
+### [Options](https://jsr.io/@fcrozatier/type-strip/doc/~/TypeStripOptions)
 
 ## Unsupported features
 

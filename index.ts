@@ -1,5 +1,8 @@
 import ts from "typescript";
 import { TypeStripError } from "./errors.ts";
+import { relative } from "@std/path/relative";
+import { dirname } from "@std/path/dirname";
+import { isAbsolute } from "@std/path/is-absolute";
 
 const SyntaxKind = ts.SyntaxKind;
 
@@ -9,32 +12,98 @@ const SyntaxKind = ts.SyntaxKind;
 export type TypeStripOptions = {
   /**
    * Whether to strip comments
+   *
+   * @default false
    */
   removeComments?: boolean;
+  /**
+   * Whether to rewrite .ts module imports to .js imports
+   *
+   * @default false
+   */
+  pathRewriting?: boolean;
+  /**
+   * Whether and how to expand aliases in import specifiers
+   */
+  remapSpecifiers?: {
+    /**
+     * The path of the file being stripped.
+     */
+    filePath: string;
+    /**
+     * A map of specifiers to their remapped specifiers
+     *
+     * Relative paths for substitutions are specified with respect to the `deno.json` file
+     *
+     * @example
+     *
+     * Given the file structure:
+     *
+     * ```
+     * ├ deno.json
+     * ├ a.ts
+     * └ lib/
+     *    └ foo/
+     *      ├ b.ts
+     *      └ bar.ts
+     * ```
+     *
+     * Where `a.ts` and `b.ts` both contain:
+     *
+     * ```ts
+     * "import '$foo/bar.ts'"
+     * ```
+     *
+     * With the option `{ imports: { '$foo/': "./lib/foo/" }` the aliases are substituted as expected:
+     *
+     * ```ts
+     * import stripTypes from '@fcrozatier/type-strip';
+     *
+     * stripTypes(fileA, {
+     *   pathRewriting: true,
+     *   remapSpecifiers: {
+     *     filePath: './a.ts',
+     *     imports: { '$foo/': "./lib/foo/" }
+     *   }
+     * });
+     * // input: import '$foo/bar.ts'
+     * // output: import './lib/foo/bar.js'
+     *
+     * stripTypes(fileB, {
+     *   pathRewriting: true,
+     *   remapSpecifiers: {
+     *     filePath: './lib/b.ts',
+     *     imports: { '$foo/': "./lib/foo/" } });
+     *   }
+     * // input: import '$foo/bar.ts'
+     * // output: import './bar.js'
+     * ```
+     */
+    imports: Record<string, string>;
+  };
   /**
    * @deprecated Use pathRewriting instead
    */
   tsToJsModuleSpecifiers?: boolean;
-  /**
-   * Whether to rewrite .ts module imports to .js imports
-   */
-  pathRewriting?: boolean;
 };
-
-const defaults: Required<TypeStripOptions> = {
-  removeComments: false,
-  tsToJsModuleSpecifiers: false,
-  pathRewriting: false,
-};
-
-type StripItem = { start: number; end: number; trailing?: RegExp };
 
 let sourceFile: ts.SourceFile;
 let sourceCode: string;
 let outputCode: string;
 let removeComments: boolean;
 let pathRewriting: boolean;
-let strip: StripItem[] = [];
+let filePath: string;
+let imports: [string, string][] | undefined;
+
+type StripItem = { start: number; end: number; trailing?: RegExp };
+const strip: StripItem[] = [];
+
+type TransformSpecifier = {
+  pos: number;
+  alias: RegExp;
+  replacement: string;
+};
+const transformSpecifiers: TransformSpecifier[] = [];
 
 /**
  * Takes a TypeScript input source file and outputs JavaScript with types stripped
@@ -53,18 +122,28 @@ export default (
     ts.ScriptKind.TS,
   );
 
-  removeComments = options?.removeComments ?? defaults.removeComments;
+  removeComments = options?.removeComments ?? false;
   pathRewriting = (options?.pathRewriting || options?.tsToJsModuleSpecifiers) ??
-    defaults.pathRewriting;
+    false;
+  const remapSpecifiers = options?.remapSpecifiers;
+
+  if (remapSpecifiers) {
+    imports = Object.entries(remapSpecifiers.imports);
+    filePath = remapSpecifiers.filePath;
+  }
 
   sourceCode = sourceFile.getFullText();
   outputCode = "";
-  strip = [];
+  strip.length = 0;
+  transformSpecifiers.length = 0;
 
   const statements = sourceFile.statements;
   for (let i = 0; i < statements.length; i++) {
     topLevelVisitor(statements[i]);
   }
+
+  transformSpecifiers.reverse();
+  let currentSpecifierTransform = transformSpecifiers.pop();
 
   let currentIndex = 0;
   for (let i = 0; i < strip.length; i++) {
@@ -72,7 +151,22 @@ export default (
 
     if (start !== undefined && end !== undefined) {
       if (currentIndex < start) {
-        outputCode += sourceCode.slice(currentIndex, start);
+        let chunk = sourceCode.slice(currentIndex, start);
+
+        while (
+          currentSpecifierTransform &&
+          currentSpecifierTransform.pos >= currentIndex &&
+          currentSpecifierTransform.pos < start
+        ) {
+          chunk = chunk.replace(
+            currentSpecifierTransform.alias,
+            "$1" +
+              currentSpecifierTransform.replacement,
+          );
+          currentSpecifierTransform = transformSpecifiers.pop();
+        }
+
+        outputCode += chunk;
         currentIndex = end;
       }
       if (currentIndex < end) {
@@ -87,7 +181,20 @@ export default (
     }
   }
   if (currentIndex < sourceCode.length) {
-    outputCode += sourceCode.slice(currentIndex);
+    let chunk = sourceCode.slice(currentIndex);
+
+    while (
+      currentSpecifierTransform &&
+      currentSpecifierTransform.pos >= currentIndex
+    ) {
+      chunk = chunk.replace(
+        currentSpecifierTransform.alias,
+        "$1" + currentSpecifierTransform.replacement,
+      );
+      currentSpecifierTransform = transformSpecifiers.pop();
+    }
+
+    outputCode += chunk;
   }
 
   return outputCode;
@@ -251,17 +358,41 @@ const visitImportDeclaration = (node: ts.ImportDeclaration) => {
     strip.push({ start: node.pos, end: node.end });
   } else if (node.importClause) {
     const skipDeclaration = visitImportClause(node.importClause);
+
     if (skipDeclaration) {
       strip.push({ start: node.pos, end: node.end });
-    }
-  }
-  if (pathRewriting) {
-    if (ts.isStringLiteral(node.moduleSpecifier)) {
-      const moduleSpecifier = node.moduleSpecifier;
+    } else {
+      if (ts.isStringLiteral(node.moduleSpecifier)) {
+        const moduleSpecifier = node.moduleSpecifier;
 
-      sourceCode = sourceCode.slice(0, moduleSpecifier.pos) +
-        ` "${moduleSpecifier.text.replace(/\.ts$/, ".js")}"` +
-        sourceCode.slice(moduleSpecifier.end);
+        if (imports) {
+          const match = imports.find(([alias]) =>
+            moduleSpecifier.text.startsWith(alias)
+          );
+
+          if (match) {
+            let replacement = match[1];
+
+            // relative path: non absolute path that's not an @alias
+            if (!isAbsolute(replacement) && replacement.startsWith(".")) {
+              replacement = relative(dirname(filePath), replacement) +
+                (replacement.endsWith("/") ? "/" : "");
+            }
+
+            transformSpecifiers.push({
+              pos: moduleSpecifier.pos,
+              alias: new RegExp("(['\"])" + RegExp.escape(match[0])),
+              replacement,
+            });
+          }
+        }
+
+        if (pathRewriting) {
+          sourceCode = sourceCode.slice(0, moduleSpecifier.pos) +
+            ` "${moduleSpecifier.text.replace(/\.ts$/, ".js")}"` +
+            sourceCode.slice(moduleSpecifier.end);
+        }
+      }
     }
   }
 };
