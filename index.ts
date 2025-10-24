@@ -320,24 +320,51 @@ const visitor = (node: ts.Node) => {
 };
 
 const visitExportDeclaration = (node: ts.ExportDeclaration) => {
+  let skipAll: boolean = false;
+
   if (node.isTypeOnly) {
+    skipAll = true;
     strip.push({ start: node.pos, end: node.end });
   } else if (node.exportClause && ts.isNamedExports(node.exportClause)) {
     const exportsToSkip = node.exportClause.elements.map(visitExportSpecifier)
       .filter(isNotUndefined);
     if (exportsToSkip?.length === node.exportClause.elements.length) {
-      // skip the whole import declaration
+      skipAll = true;
       strip.push({ start: node.pos, end: node.end });
     } else {
-      for (let i = 0; i < exportsToSkip.length; i++) {
-        strip.push(exportsToSkip[i]);
-      }
+      strip.push(...exportsToSkip);
     }
   }
 
   const moduleSpecifier = node.moduleSpecifier;
-  if (pathRewriting && moduleSpecifier) {
-    if (ts.isStringLiteral(moduleSpecifier)) {
+
+  if (
+    moduleSpecifier && ts.isStringLiteral(moduleSpecifier) &&
+    (!node.exportClause || skipAll === false)
+  ) {
+    if (imports) {
+      const match = imports.find(([alias]) =>
+        moduleSpecifier.text.startsWith(alias)
+      );
+
+      if (match) {
+        let replacement = match[1];
+
+        // relative path: non absolute path that's not an @alias
+        if (!isAbsolute(replacement) && replacement.startsWith(".")) {
+          replacement = relative(dirname(filePath), replacement) +
+            (replacement.endsWith("/") ? "/" : "");
+        }
+
+        transformSpecifiers.push({
+          pos: moduleSpecifier.pos,
+          alias: new RegExp("(['\"])" + RegExp.escape(match[0])),
+          replacement,
+        });
+      }
+    }
+
+    if (pathRewriting) {
       sourceCode = sourceCode.slice(0, moduleSpecifier.pos) +
         ` "${moduleSpecifier.text.replace(/\.ts$/, ".js")}"` +
         sourceCode.slice(moduleSpecifier.end);
@@ -416,9 +443,7 @@ const visitImportClause = (node: ts.ImportClause) => {
     if (importsToSkip?.length === node.namedBindings?.elements.length) {
       return true; // skip the whole import declaration
     } else {
-      for (let i = 0; i < importsToSkip.length; i++) {
-        strip.push(importsToSkip[i]);
-      }
+      strip.push(...importsToSkip);
     }
   }
 };

@@ -1,0 +1,41 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "deno run",
+      "request": "launch",
+      "type": "node",
+      "runtimeExecutable": "deno",
+      "cwd": "${workspaceFolder}",
+      "program": "${file}",
+      "runtimeArgs": [
+        "run",
+        "--inspect-wait",
+        "--allow-all"
+      ],
+      "env": {},
+      "attachSimplePort": 9229,
+      "experimentalNetworking": "off"
+    },
+    {
+      "name": "deno test",
+      "request": "launch",
+      "type": "node",
+      "runtimeExecutable": "deno",
+      "cwd": "${workspaceFolder}",
+      "program": "${file}",
+      "runtimeArgs": [
+        "test",
+        "--inspect-wait",
+        "--allow-all",
+        "--no-check"
+      ],
+      "env": {},
+      "attachSimplePort": 9229,
+      "experimentalNetworking": "off"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { walk } from "@std/fs";
 import { basename, join } from "@std/path";
-import TypeStrip, { type TypeStripOptions } from "../../index.ts";
+import stripTypes, { type TypeStripOptions } from "../../index.ts";
 
 const only = [/.*/];
 const skip = undefined;
@@ -33,7 +33,7 @@ for await (
       ? (await import(optionsEntry.path)).options
       : { removeComments: false, pathRewriting: false };
 
-    const stripped = TypeStrip(inputCode, options);
+    const stripped = stripTypes(inputCode, options);
 
     Deno.test(`handles ${testCase}`, () => {
       assertEquals(stripped, outputCode);
